@@ -60,7 +60,7 @@ enum TokenType {
 struct Token {
     token_type: TokenType,
     lexeme: Option<String>,
-    // literal: Object ????
+    literal: Option<String>, // not sure what the real type is just yet ....
     line: u32,
 }
 
@@ -69,6 +69,7 @@ impl Token {
         Token {
             token_type,
             lexeme: None,
+            literal: None,
             line,
         }
     }
@@ -78,6 +79,10 @@ struct Scanner {
     source: String,
     tokens: Vec<Token>,
     error_reporter: ErrorReporter,
+
+    start: usize,
+    current: usize,
+    line: u32,
 }
 
 impl Scanner {
@@ -86,50 +91,87 @@ impl Scanner {
             source,
             tokens: Vec::new(),
             error_reporter,
+            start: 0_usize,
+            current: 0_usize,
+            line: 1_u32,
         }
     }
 
+    /// Scan for all the lexemes in the source.
     fn scan_tokens(&mut self) -> Result<()> {
-        use TokenType::*;
+        // this sucks, but i just want an index-addressable array
+        let src: Vec<char> = self.source.as_str().chars().collect();
 
-        let start: usize = 0;
-        let current: usize = 0;
-        let line: u32 = 0;
-
-        let src = self.source.as_str().chars();
-        for c in src {
-            match c {
-                // one-character lexemes
-                '(' => self.tokens.push(Token::simple_token(LeftParen, line)),
-                ')' => self.tokens.push(Token::simple_token(RightParen, line)),
-                '{' => self.tokens.push(Token::simple_token(LeftBrace, line)),
-                '}' => self.tokens.push(Token::simple_token(RightBrace, line)),
-                ',' => self.tokens.push(Token::simple_token(Comma, line)),
-                '.' => self.tokens.push(Token::simple_token(Dot, line)),
-                '-' => self.tokens.push(Token::simple_token(Minus, line)),
-                '+' => self.tokens.push(Token::simple_token(Plus, line)),
-                ';' => self.tokens.push(Token::simple_token(Semicolon, line)),
-                '*' => self.tokens.push(Token::simple_token(Star, line)),
-
-                // one or two character lexemes
-                '*' => self.tokens.push(Token::simple_token(Star, line)),
-
-                _ => self
-                    .error_reporter
-                    .error(line, format!("unexpected character: {:?}", c).as_str()),
-            }
+        while !self.at_end(&src) {
+            // we're at the start of the next lexeme
+            self.start = self.current;
+            self.scan_token(&src);
         }
 
-        self.tokens.push(Token {
-            token_type: TokenType::Eof,
-            lexeme: None,
-            line,
-        });
+        // we're at the end, add the EOF
+        self.tokens
+            .push(Token::simple_token(TokenType::Eof, self.line));
+
+        println!("**** tokens start ****");
+        for t in &self.tokens {
+            println!("{:?}", t);
+        }
+        println!("**** tokens end ****");
 
         Ok(())
     }
+
+    /// Scan for the next lexeme in the source.
+    fn scan_token(&mut self, src: &[char]) {
+        use TokenType::*;
+        let c = self.advance(src);
+        match c {
+            // one-character lexemes
+            '(' => self.tokens.push(Token::simple_token(LeftParen, self.line)),
+            ')' => self.tokens.push(Token::simple_token(RightParen, self.line)),
+            '{' => self.tokens.push(Token::simple_token(LeftBrace, self.line)),
+            '}' => self.tokens.push(Token::simple_token(RightBrace, self.line)),
+            ',' => self.tokens.push(Token::simple_token(Comma, self.line)),
+            '.' => self.tokens.push(Token::simple_token(Dot, self.line)),
+            '-' => self.tokens.push(Token::simple_token(Minus, self.line)),
+            '+' => self.tokens.push(Token::simple_token(Plus, self.line)),
+            ';' => self.tokens.push(Token::simple_token(Semicolon, self.line)),
+
+            // one or two character lexemes
+            //                '*' => self.tokens.push(Token::simple_token(Star, line)),
+            _ => self
+                .error_reporter
+                .error(self.line, format!("unexpected character: {:?}", c).as_str()),
+        }
+    }
+
+    fn simple_token(&mut self, src: &[char], token_type: TokenType) {
+        // hmm, this is not great, but a starting point ....
+        let lexeme: String = src[self.start..self.current].iter().collect();
+
+        self.tokens.push(Token {
+            token_type,
+            lexeme: Some(lexeme),
+            literal: None,
+            line: self.line,
+        });
+    }
+
+    /// Helper function to push the current index pointer into source along.
+    fn advance(&mut self, src: &[char]) -> char {
+        let c = src[self.current];
+        self.current += 1;
+        c
+    }
+
+    /// Helper function to know if we're at the end of the source input.
+    fn at_end(&self, src: &Vec<char>) -> bool {
+        self.current >= src.len()
+    }
 }
 
+/// A centralized error reporting struct. Should be passed around to all
+/// the workers in this project.
 #[derive(Default, Clone, Debug)]
 struct ErrorReporter {
     // TODO(jeb): Not sure if Cell is the best here, but it's
@@ -156,6 +198,7 @@ impl ErrorReporter {
     }
 }
 
+/// The main struct for doing all the things for this project.
 struct RLox {
     error_reporter: ErrorReporter,
 }
@@ -186,6 +229,8 @@ impl RLox {
 
     fn run(&self, input: &str) -> Result<()> {
         println!("... run, run ... :: {:?}", input);
+        let mut scanner = Scanner::new(input.to_string(), self.error_reporter.clone());
+        scanner.scan_tokens()?;
         Ok(())
     }
 

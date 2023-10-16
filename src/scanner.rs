@@ -67,13 +67,58 @@ impl Scanner {
 
             // one or two character lexemes
             '!' => {
-                let tkn = if self.match_next(self, src, '=') {
+                let tkn = if self.match_next(src, '=') {
                     BangEqual
                 } else {
                     Bang
                 };
                 self.tokens.push(Token::simple_token(tkn, self.line));
             }
+            '=' => {
+                let tkn = if self.match_next(src, '=') {
+                    EqualEqual
+                } else {
+                    Equal
+                };
+                self.tokens.push(Token::simple_token(tkn, self.line));
+            }
+            '<' => {
+                let tkn = if self.match_next(src, '=') {
+                    LessEqual
+                } else {
+                    Less
+                };
+                self.tokens.push(Token::simple_token(tkn, self.line));
+            }
+            '>' => {
+                let tkn = if self.match_next(src, '=') {
+                    GreaterEqual
+                } else {
+                    Greater
+                };
+                self.tokens.push(Token::simple_token(tkn, self.line));
+            }
+
+            // comment ot division
+            '/' => {
+                if self.match_next(src, '/') {
+                    while self.peek(src) != '\n' && !self.at_end(src) {
+                        self.advance(src);
+                    }
+                } else {
+                    self.tokens.push(Token::simple_token(Slash, self.line));
+                }
+            }
+
+            // skip whitespace
+            ' ' => {}
+            '\r' => {}
+            '\t' => {}
+            '\n' => self.line += 1,
+
+            // now we're onto handling literals
+            '"' => self.string_literal(src),
+
             _ => self
                 .error_reporter
                 .error(self.line, format!("unexpected character: {:?}", c).as_str()),
@@ -81,10 +126,38 @@ impl Scanner {
     }
 
     /// Helper function to push the current index pointer into source along.
+    fn string_literal(&mut self, src: &[char]) {
+        while self.peek(src) != '"' && !self.at_end(src) {
+            if self.peek(src) == '\n' {
+                self.line += 1;
+            }
+            self.advance(src);
+        }
+
+        if self.at_end(src) {
+            self.error_reporter.error(self.line, "unterminated string");
+        }
+
+        // account for the closing '"'
+        self.advance(src);
+        let s: String = src[self.start + 1..self.current - 1].iter().collect();
+        self.tokens
+            .push(Token::literal_token(TokenType::String, s, self.line))
+    }
+
+    /// Helper function to push the current index pointer into source along.
     fn advance(&mut self, src: &[char]) -> char {
         let c = src[self.current];
         self.current += 1;
         c
+    }
+
+    /// Helper function to peek at the next char in the stream.
+    fn peek(&mut self, src: &[char]) -> char {
+        if self.at_end(src) {
+            return '\0';
+        }
+        src[self.current]
     }
 
     fn match_next(&mut self, src: &[char], expected: char) -> bool {
@@ -99,7 +172,7 @@ impl Scanner {
     }
 
     /// Helper function to know if we're at the end of the source input.
-    fn at_end(&self, src: &Vec<char>) -> bool {
+    fn at_end(&self, src: &[char]) -> bool {
         self.current >= src.len()
     }
 }

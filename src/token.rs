@@ -67,4 +67,13 @@ impl Token {
             line,
         }
     }
+
+    pub(crate) fn literal_token(token_type: TokenType, literal: String, line: u32) -> Self {
+        Token {
+            token_type,
+            lexeme: None,
+            literal: Some(literal),
+            line,
+        }
+    }
 }

@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-#[derive(Eq, PartialEq, Debug)]
+#[derive(Eq, PartialEq, Debug, Clone)]
 pub enum TokenType {
     // single character tokens
     LeftParen,
@@ -50,39 +50,40 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
+pub enum Literal {
+    StringLiteral(String),
+    NumberLiteral(f64),
+}
+
+#[derive(Debug, Clone)]
 pub struct Token {
     token_type: TokenType,
-    lexeme: Option<String>,
-    string_literal: Option<String>,
-    number_literal: Option<f64>,
+    lexeme: String,
+    literal: Option<Literal>,
     line: u32,
 }
 
 impl Token {
-    pub(crate) fn simple_token(token_type: TokenType, line: u32) -> Self {
-        Self::new(token_type, None, None, line)
+    pub(crate) fn simple_token(token_type: TokenType, lexeme: String, line: u32) -> Self {
+        Token {
+            token_type,
+            lexeme,
+            literal: None,
+            line,
+        }
     }
 
-    pub(crate) fn literal_token(token_type: TokenType, literal: String, line: u32) -> Self {
-        Self::new(token_type, Some(literal), None, line)
-    }
-
-    pub(crate) fn number_token(token_type: TokenType, number: f64, line: u32) -> Self {
-        Self::new(token_type, None, Some(number), line)
-    }
-
-    fn new(
+    pub(crate) fn literal_token(
         token_type: TokenType,
-        string_literal: Option<String>,
-        number_literal: Option<f64>,
+        lexeme: String,
+        literal: Literal,
         line: u32,
     ) -> Self {
         Token {
             token_type,
-            lexeme: None,
-            string_literal,
-            number_literal,
+            lexeme,
+            literal: Some(literal),
             line,
         }
     }

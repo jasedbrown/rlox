@@ -1,7 +1,28 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Literal, Token, TokenType};
 use crate::ErrorReporter;
 
 use std::io::Result;
+
+use phf::phf_map;
+
+static KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
+    "and" => TokenType::And,
+    "class" => TokenType::Class,
+    "else" => TokenType::Else,
+    "false" => TokenType::False,
+    "for" => TokenType::For,
+    "fun" => TokenType::Fun,
+    "if" => TokenType::If,
+    "nil" => TokenType::Nil,
+    "or" => TokenType::Or,
+    "print" => TokenType::Print,
+    "return" => TokenType::Return,
+    "super" => TokenType::Super,
+    "this" => TokenType::This,
+    "true" => TokenType::True,
+    "var" => TokenType::Var,
+    "while" => TokenType::While,
+};
 
 pub struct Scanner {
     source: String,
@@ -37,8 +58,7 @@ impl Scanner {
         }
 
         // we're at the end, add the EOF
-        self.tokens
-            .push(Token::simple_token(TokenType::Eof, self.line));
+        self.add_token(TokenType::Eof, &src);
 
         println!("**** tokens start ****");
         for t in &self.tokens {
@@ -55,15 +75,15 @@ impl Scanner {
         let c = self.advance(src);
         match c {
             // one-character lexemes
-            '(' => self.tokens.push(Token::simple_token(LeftParen, self.line)),
-            ')' => self.tokens.push(Token::simple_token(RightParen, self.line)),
-            '{' => self.tokens.push(Token::simple_token(LeftBrace, self.line)),
-            '}' => self.tokens.push(Token::simple_token(RightBrace, self.line)),
-            ',' => self.tokens.push(Token::simple_token(Comma, self.line)),
-            '.' => self.tokens.push(Token::simple_token(Dot, self.line)),
-            '-' => self.tokens.push(Token::simple_token(Minus, self.line)),
-            '+' => self.tokens.push(Token::simple_token(Plus, self.line)),
-            ';' => self.tokens.push(Token::simple_token(Semicolon, self.line)),
+            '(' => self.add_token(LeftParen, src),
+            ')' => self.add_token(RightParen, src),
+            '{' => self.add_token(LeftBrace, src),
+            '}' => self.add_token(RightBrace, src),
+            ',' => self.add_token(Comma, src),
+            '.' => self.add_token(Dot, src),
+            '-' => self.add_token(Minus, src),
+            '+' => self.add_token(Plus, src),
+            ';' => self.add_token(Semicolon, src),
 
             // one or two character lexemes
             '!' => {
@@ -72,7 +92,7 @@ impl Scanner {
                 } else {
                     Bang
                 };
-                self.tokens.push(Token::simple_token(tkn, self.line));
+                self.add_token(tkn, src);
             }
             '=' => {
                 let tkn = if self.match_next(src, '=') {
@@ -80,7 +100,7 @@ impl Scanner {
                 } else {
                     Equal
                 };
-                self.tokens.push(Token::simple_token(tkn, self.line));
+                self.add_token(tkn, src);
             }
             '<' => {
                 let tkn = if self.match_next(src, '=') {
@@ -88,7 +108,7 @@ impl Scanner {
                 } else {
                     Less
                 };
-                self.tokens.push(Token::simple_token(tkn, self.line));
+                self.add_token(tkn, src);
             }
             '>' => {
                 let tkn = if self.match_next(src, '=') {
@@ -96,7 +116,7 @@ impl Scanner {
                 } else {
                     Greater
                 };
-                self.tokens.push(Token::simple_token(tkn, self.line));
+                self.add_token(tkn, src);
             }
 
             // comment ot division
@@ -106,7 +126,7 @@ impl Scanner {
                         self.advance(src);
                     }
                 } else {
-                    self.tokens.push(Token::simple_token(Slash, self.line));
+                    self.add_token(Slash, src);
                 }
             }
 
@@ -118,7 +138,8 @@ impl Scanner {
 
             // now we're onto handling literals
             '"' => self.string_literal(src),
-            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.number_literal(src),
+            _ if c.is_ascii_digit() => self.number_literal(src),
+            _ if Self::is_identifier_char(c) => self.identifier(src),
 
             _ => self
                 .error_reporter
@@ -142,8 +163,7 @@ impl Scanner {
         // account for the closing '"'
         self.advance(src);
         let s: String = src[self.start + 1..self.current - 1].iter().collect();
-        self.tokens
-            .push(Token::literal_token(TokenType::String, s, self.line))
+        self.add_literal_token(TokenType::String, Literal::StringLiteral(s), src);
     }
 
     fn number_literal(&mut self, src: &[char]) {
@@ -165,8 +185,41 @@ impl Scanner {
 
         let s: String = src[self.start..self.current].iter().collect();
         let n = s.parse::<f64>().unwrap();
+        self.add_literal_token(TokenType::Number, Literal::NumberLiteral(n), src);
+    }
+
+    fn identifier(&mut self, src: &[char]) {
+        loop {
+            let c = self.peek(src);
+            if c.is_ascii_digit() || Self::is_identifier_char(c) {
+                self.advance(src);
+            } else {
+                break;
+            }
+        }
+
+        let lexeme: String = src[self.start..self.current].iter().collect();
+        let token_type = match KEYWORDS.get(lexeme.as_str()) {
+            Some(v) => v.clone(),
+            None => TokenType::Identifier,
+        };
+        self.add_token(token_type, src);
+    }
+
+    fn add_token(&mut self, token_type: TokenType, src: &[char]) {
+        let lexeme = src[self.start..self.current].iter().collect();
         self.tokens
-            .push(Token::number_token(TokenType::Number, n, self.line))
+            .push(Token::simple_token(token_type, lexeme, self.line));
+    }
+
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Literal, src: &[char]) {
+        let lexeme = src[self.start..self.current].iter().collect();
+        self.tokens
+            .push(Token::literal_token(token_type, lexeme, literal, self.line));
+    }
+
+    fn is_identifier_char(c: char) -> bool {
+        c.is_alphabetic() || '_' == c
     }
 
     /// Helper function to push the current index pointer into source along.

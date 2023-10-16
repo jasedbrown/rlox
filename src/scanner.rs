@@ -118,6 +118,7 @@ impl Scanner {
 
             // now we're onto handling literals
             '"' => self.string_literal(src),
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => self.number_literal(src),
 
             _ => self
                 .error_reporter
@@ -145,6 +146,29 @@ impl Scanner {
             .push(Token::literal_token(TokenType::String, s, self.line))
     }
 
+    fn number_literal(&mut self, src: &[char]) {
+        let is_digit = |c: char| -> bool { c.is_ascii_digit() };
+
+        while is_digit(self.peek(src)) {
+            self.advance(src);
+        }
+
+        // look for a decimal
+        if self.peek(src) == '.' && is_digit(self.peek_next(src)) {
+            // consume the decimal ('.')
+            self.advance(src);
+
+            while is_digit(self.peek(src)) {
+                self.advance(src);
+            }
+        }
+
+        let s: String = src[self.start..self.current].iter().collect();
+        let n = s.parse::<f64>().unwrap();
+        self.tokens
+            .push(Token::number_token(TokenType::Number, n, self.line))
+    }
+
     /// Helper function to push the current index pointer into source along.
     fn advance(&mut self, src: &[char]) -> char {
         let c = src[self.current];
@@ -158,6 +182,15 @@ impl Scanner {
             return '\0';
         }
         src[self.current]
+    }
+
+    /// Helper function to peek at the next-next char in the stream,
+    /// that is, two chars ahead.
+    fn peek_next(&mut self, src: &[char]) -> char {
+        if self.current + 1 >= src.len() {
+            return '\0';
+        }
+        src[self.current + 1]
     }
 
     fn match_next(&mut self, src: &[char], expected: char) -> bool {

@@ -54,25 +54,35 @@ pub enum TokenType {
 pub struct Token {
     token_type: TokenType,
     lexeme: Option<String>,
-    literal: Option<String>, // not sure what the real type is just yet ....
+    string_literal: Option<String>,
+    number_literal: Option<f64>,
     line: u32,
 }
 
 impl Token {
     pub(crate) fn simple_token(token_type: TokenType, line: u32) -> Self {
-        Token {
-            token_type,
-            lexeme: None,
-            literal: None,
-            line,
-        }
+        Self::new(token_type, None, None, line)
     }
 
     pub(crate) fn literal_token(token_type: TokenType, literal: String, line: u32) -> Self {
+        Self::new(token_type, Some(literal), None, line)
+    }
+
+    pub(crate) fn number_token(token_type: TokenType, number: f64, line: u32) -> Self {
+        Self::new(token_type, None, Some(number), line)
+    }
+
+    fn new(
+        token_type: TokenType,
+        string_literal: Option<String>,
+        number_literal: Option<f64>,
+        line: u32,
+    ) -> Self {
         Token {
             token_type,
             lexeme: None,
-            literal: Some(literal),
+            string_literal,
+            number_literal,
             line,
         }
     }

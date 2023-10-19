@@ -59,7 +59,7 @@ pub enum Literal {
 #[derive(Debug, Clone)]
 pub struct Token {
     token_type: TokenType,
-    lexeme: String,
+    pub(crate) lexeme: String,
     literal: Option<Literal>,
     line: u32,
 }

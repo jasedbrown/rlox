@@ -1,3 +1,4 @@
+pub(crate) mod expr;
 pub(crate) mod scanner;
 pub(crate) mod token;
 

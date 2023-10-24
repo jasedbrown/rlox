@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+use std::fmt::{Display, Formatter, Result};
+
 #[derive(Eq, PartialEq, Debug, Clone)]
 pub enum TokenType {
     // single character tokens
@@ -56,15 +58,33 @@ pub enum Literal {
     NumberLiteral(f64),
 }
 
+impl Display for Literal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            Literal::StringLiteral(s) => write!(f, "{}", s),
+            Literal::NumberLiteral(n) => write!(f, "{}", n),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
-    token_type: TokenType,
+    pub(crate) token_type: TokenType,
     pub(crate) lexeme: String,
-    literal: Option<Literal>,
+    pub(crate) literal: Option<Literal>,
     line: u32,
 }
 
 impl Token {
+    pub(crate) fn empty_token(token_type: TokenType, line: u32) -> Self {
+        Token {
+            token_type,
+            lexeme: "".to_string(),
+            literal: None,
+            line,
+        }
+    }
+
     pub(crate) fn simple_token(token_type: TokenType, lexeme: String, line: u32) -> Self {
         Token {
             token_type,

@@ -1,4 +1,5 @@
 pub(crate) mod expr;
+pub(crate) mod parser;
 pub(crate) mod scanner;
 pub(crate) mod token;
 
@@ -6,6 +7,7 @@ use std::cell::Cell;
 use std::fs;
 use std::io::{stdin, Result};
 
+use crate::parser::Parser;
 use crate::scanner::Scanner;
 
 /// A centralized error reporting struct. Should be passed around to all
@@ -67,8 +69,20 @@ impl RLox {
 
     fn run(&self, input: &str) -> Result<()> {
         println!("... run, run ... :: {:?}", input);
+
+        // 1. scan
         let mut scanner = Scanner::new(input.to_string(), self.error_reporter.clone());
         scanner.scan_tokens()?;
+        let tokens = scanner.tokens();
+
+        // 2. parse
+        let mut parser = Parser::new(tokens, self.error_reporter.clone());
+        let expression = parser.parse();
+        match expression {
+            Ok(expr) => println!("expr: {:?}", expr),
+            Err(e) => println!("error: {:?}", e),
+        }
+
         Ok(())
     }
 

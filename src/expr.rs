@@ -1,18 +1,41 @@
-use crate::token::{Literal, Token};
+#![allow(dead_code)]
+use crate::token::Token;
 
-enum Expr {
+use std::fmt::{Display, Formatter, Result};
+
+#[derive(Debug)]
+pub enum Expr {
     Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
     Call(Box<Expr>, Token, Vec<Expr>),
     Get(Box<Expr>, Token),
     Grouping(Box<Expr>),
-    Literal(Literal),
+    Literal(LiteralValue),
     Logical(Box<Expr>, Token, Box<Expr>),
     Set(Box<Expr>, Token, Box<Expr>),
     Super(Token, Token),
     This(Token),
     Unary(Token, Box<Expr>),
     Variable(Token),
+}
+
+#[derive(Clone, Debug)]
+pub enum LiteralValue {
+    StringLiteral(String),
+    NumberLiteral(f64),
+    BooleanLiteral(bool),
+    NilLiteral(),
+}
+
+impl Display for LiteralValue {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            LiteralValue::StringLiteral(s) => write!(f, "{}", s),
+            LiteralValue::NumberLiteral(n) => write!(f, "{}", n),
+            LiteralValue::BooleanLiteral(b) => write!(f, "{}", b),
+            LiteralValue::NilLiteral() => write!(f, "nil"),
+        }
+    }
 }
 
 impl Expr {
@@ -24,14 +47,12 @@ impl Expr {
             Call(_e, _t, _v) => String::new(),
             Get(_e, _t) => String::new(),
             Grouping(e) => Self::parenthesize(None, vec![e]),
-            Literal(_l) => {
-                // start here next time!
-            },,
+            Literal(l) => format!("{}", l),
             Logical(_l, _t, _r) => String::new(),
             Set(_l, _t, _r) => String::new(),
             Super(_t1, _t2) => String::new(),
             This(_t) => String::new(),
-            Unary(_t, _e) => String::new(),
+            Unary(t, e) => Self::parenthesize(Some(&t.lexeme), vec![e]),
             Variable(_t) => String::new(),
         }
     }
@@ -73,4 +94,33 @@ impl Expr {
 
     //     Ok(())
     // }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::expr::{Expr, LiteralValue};
+    use crate::token::{Token, TokenType};
+
+    #[test]
+    fn simple_literal() {
+        let s = Expr::Literal(LiteralValue::StringLiteral("asdf".to_string()));
+        println!("{:?}", Expr::sorta_pretty_print(&s));
+    }
+
+    #[test]
+    fn simple_negative() {
+        let n = Box::new(Expr::Literal(LiteralValue::NumberLiteral(42.0)));
+        let neg = Token::simple_token(TokenType::Bang, "!".to_string(), 0);
+        let unary = Expr::Unary(neg, n);
+        println!("{:?}", Expr::sorta_pretty_print(&unary));
+    }
+
+    #[test]
+    fn simple_add() {
+        let left = Box::new(Expr::Literal(LiteralValue::NumberLiteral(42.0)));
+        let right = Box::new(Expr::Literal(LiteralValue::NumberLiteral(3.0)));
+        let plus = Token::simple_token(TokenType::Plus, "+".to_string(), 0);
+        let binary = Expr::Binary(left, plus, right);
+        println!("{:?}", Expr::sorta_pretty_print(&binary));
+    }
 }

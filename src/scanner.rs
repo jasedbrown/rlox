@@ -46,6 +46,10 @@ impl Scanner {
         }
     }
 
+    pub fn tokens(&self) -> &Vec<Token> {
+        &self.tokens
+    }
+
     /// Scan for all the lexemes in the source.
     pub fn scan_tokens(&mut self) -> Result<()> {
         // this sucks, but i just want an index-addressable array
@@ -58,7 +62,8 @@ impl Scanner {
         }
 
         // we're at the end, add the EOF
-        self.add_token(TokenType::Eof, &src);
+        self.tokens
+            .push(Token::empty_token(TokenType::Eof, self.line));
 
         println!("**** tokens start ****");
         for t in &self.tokens {

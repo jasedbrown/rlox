@@ -1,9 +1,8 @@
 use anyhow::{anyhow, Result};
 
+use crate::expr::{Expr, LiteralValue};
 use crate::token::{Literal, Token, TokenType};
 use crate::ErrorReporter;
-
-use crate::expr::{Expr, LiteralValue};
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,

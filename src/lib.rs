@@ -1,12 +1,16 @@
 pub(crate) mod expr;
+pub(crate) mod interpreter;
 pub(crate) mod parser;
 pub(crate) mod scanner;
 pub(crate) mod token;
 
 use std::cell::Cell;
 use std::fs;
-use std::io::{stdin, Result};
+use std::io::stdin;
 
+use anyhow::Result;
+
+use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
 
@@ -40,12 +44,16 @@ impl ErrorReporter {
 
 /// The main struct for doing all the things for this project.
 pub struct RLox {
+    interpreter: Interpreter,
     error_reporter: ErrorReporter,
 }
 
 impl RLox {
     pub fn new(error_reporter: ErrorReporter) -> Self {
-        RLox { error_reporter }
+        RLox {
+            interpreter: Interpreter {},
+            error_reporter,
+        }
     }
 
     pub fn run_prompt(&self) -> Result<()> {
@@ -82,6 +90,8 @@ impl RLox {
             Ok(expr) => println!("expr: {:?}", expr),
             Err(e) => println!("error: {:?}", e),
         }
+
+        self.interpreter.do_it()?;
 
         Ok(())
     }

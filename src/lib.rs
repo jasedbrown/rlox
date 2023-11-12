@@ -51,7 +51,7 @@ pub struct RLox {
 impl RLox {
     pub fn new(error_reporter: ErrorReporter) -> Self {
         RLox {
-            interpreter: Interpreter {},
+            interpreter: Interpreter::new(error_reporter.clone()),
             error_reporter,
         }
     }
@@ -86,13 +86,18 @@ impl RLox {
         // 2. parse
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let expression = parser.parse();
-        match expression {
-            Ok(expr) => println!("expr: {:?}", expr),
-            Err(e) => println!("error: {:?}", e),
-        }
+        let expr = match expression {
+            Ok(expr) => {
+                println!("expr: {:?}", expr);
+                expr
+            }
+            Err(e) => {
+                println!("error: {:?}", e);
+                return Err(e);
+            }
+        };
 
-        self.interpreter.do_it()?;
-
+        self.interpreter.do_it(expr)?;
         Ok(())
     }
 

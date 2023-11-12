@@ -1,12 +1,18 @@
 use anyhow::{anyhow, Result};
 
 use crate::expr::{Expr, LiteralValue};
-//use crate::ErrortReporter;
+use crate::ErrorReporter;
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    error_reporter: ErrorReporter,
+}
 
 impl Interpreter {
-    pub fn do_it(&self) -> Result<()> {
+    pub fn new(error_reporter: ErrorReporter) -> Self {
+        Self { error_reporter }
+    }
+
+    pub fn do_it(&self, expr: Expr) -> Result<()> {
         // fn visit(expr: Expr) -> Result<()> {
         //     use Expr::*;
         //     match expr {

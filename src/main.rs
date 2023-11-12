@@ -5,7 +5,7 @@ use rlox::{ErrorReporter, RLox};
 
 fn main() {
     let mut env_args: Vec<String> = env::args().collect();
-    // ignore the first arg (it's the standard unix nmame of process)
+    // ignore the first arg (it's the standard unix name of the process)
     env_args.remove(0);
 
     let error_reporter = ErrorReporter::default();

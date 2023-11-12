@@ -65,11 +65,11 @@ impl Scanner {
         self.tokens
             .push(Token::empty_token(TokenType::Eof, self.line));
 
-        println!("**** tokens start ****");
-        for t in &self.tokens {
-            println!("{:?}", t);
-        }
-        println!("**** tokens end ****");
+        // println!("**** tokens start ****");
+        // for t in &self.tokens {
+        //     println!("{:?}", t);
+        // }
+        // println!("**** tokens end ****");
 
         Ok(())
     }
@@ -88,6 +88,7 @@ impl Scanner {
             '.' => self.add_token(Dot, src),
             '-' => self.add_token(Minus, src),
             '+' => self.add_token(Plus, src),
+            '*' => self.add_token(Star, src),
             ';' => self.add_token(Semicolon, src),
 
             // one or two character lexemes

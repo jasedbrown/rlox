@@ -18,11 +18,11 @@ pub enum RlValue {
 }
 
 impl fmt::Display for RlValue {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             RlValue::Nil => write!(f, "nil"),
             RlValue::Boolean(b) => write!(f, "{}", b),
-            RlValue::Double(d) => write!(f, "{}", d),
+            RlValue::Double(d) => write!(f, "{:2}", d),
             RlValue::String(ref s) => write!(f, "{}", s),
         }
     }
@@ -56,6 +56,13 @@ impl RlValue {
     pub fn as_numeric(&self) -> Option<f64> {
         match *self {
             RlValue::Double(d) => Some(d),
+            _ => None,
+        }
+    }
+
+    pub fn as_string(&self) -> Option<String> {
+        match *self {
+            RlValue::String(ref r) => Some(r.to_string()),
             _ => None,
         }
     }

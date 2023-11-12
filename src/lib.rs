@@ -77,8 +77,6 @@ impl RLox {
     }
 
     fn run(&self, input: &str) -> Result<()> {
-        println!("... run, run ... :: {:?}", input);
-
         // 1. scan
         let mut scanner = Scanner::new(input.to_string(), self.error_reporter.clone());
         scanner.scan_tokens()?;
@@ -88,17 +86,15 @@ impl RLox {
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let expression = parser.parse();
         let expr = match expression {
-            Ok(expr) => {
-                println!("expr: {:?}", expr);
-                expr
-            }
+            Ok(expr) => expr,
             Err(e) => {
                 println!("error: {:?}", e);
                 return Err(e);
             }
         };
 
-        Interpreter::visit(&expr);
+        let rlvalue = Interpreter::visit(&expr)?;
+        println!("-> {}", rlvalue);
         Ok(())
     }
 

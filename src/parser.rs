@@ -104,13 +104,13 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Result<Expr> {
         let next = self.advance();
         let expr = match next.token_type {
-            TokenType::False => Expr::Literal(LiteralValue::BooleanLiteral(false)),
-            TokenType::True => Expr::Literal(LiteralValue::BooleanLiteral(true)),
-            TokenType::Nil => Expr::Literal(LiteralValue::NilLiteral()),
+            TokenType::False => Expr::Literal(LiteralValue::Boolean(false)),
+            TokenType::True => Expr::Literal(LiteralValue::Boolean(true)),
+            TokenType::Nil => Expr::Literal(LiteralValue::Nil()),
 
             TokenType::Number => {
                 if let Some(Literal::NumberLiteral(n)) = next.literal {
-                    Expr::Literal(LiteralValue::NumberLiteral(n))
+                    Expr::Literal(LiteralValue::Number(n))
                 } else {
                     return Err(anyhow!(
                         "unsupported literal type with Number token type: {:?}",
@@ -121,7 +121,7 @@ impl<'a> Parser<'a> {
 
             TokenType::String => {
                 if let Some(Literal::StringLiteral(ref s)) = next.literal {
-                    Expr::Literal(LiteralValue::StringLiteral(s.clone()))
+                    Expr::Literal(LiteralValue::String(s.clone()))
                 } else {
                     return Err(anyhow!(
                         "unsupported literal type with Number token type: {:?}",

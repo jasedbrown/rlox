@@ -21,19 +21,19 @@ pub enum Expr {
 
 #[derive(Clone, Debug)]
 pub enum LiteralValue {
-    StringLiteral(String),
-    NumberLiteral(f64),
-    BooleanLiteral(bool),
-    NilLiteral(),
+    String(String),
+    Number(f64),
+    Boolean(bool),
+    Nil(),
 }
 
 impl Display for LiteralValue {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            LiteralValue::StringLiteral(s) => write!(f, "{}", s),
-            LiteralValue::NumberLiteral(n) => write!(f, "{}", n),
-            LiteralValue::BooleanLiteral(b) => write!(f, "{}", b),
-            LiteralValue::NilLiteral() => write!(f, "nil"),
+            LiteralValue::String(s) => write!(f, "{}", s),
+            LiteralValue::Number(n) => write!(f, "{}", n),
+            LiteralValue::Boolean(b) => write!(f, "{}", b),
+            LiteralValue::Nil() => write!(f, "nil"),
         }
     }
 }
@@ -103,13 +103,13 @@ mod test {
 
     #[test]
     fn simple_literal() {
-        let s = Expr::Literal(LiteralValue::StringLiteral("asdf".to_string()));
+        let s = Expr::Literal(LiteralValue::String("asdf".to_string()));
         println!("{:?}", Expr::sorta_pretty_print(&s));
     }
 
     #[test]
     fn simple_negative() {
-        let n = Box::new(Expr::Literal(LiteralValue::NumberLiteral(42.0)));
+        let n = Box::new(Expr::Literal(LiteralValue::Number(42.0)));
         let neg = Token::simple_token(TokenType::Bang, "!".to_string(), 0);
         let unary = Expr::Unary(neg, n);
         println!("{:?}", Expr::sorta_pretty_print(&unary));
@@ -117,8 +117,8 @@ mod test {
 
     #[test]
     fn simple_add() {
-        let left = Box::new(Expr::Literal(LiteralValue::NumberLiteral(42.0)));
-        let right = Box::new(Expr::Literal(LiteralValue::NumberLiteral(3.0)));
+        let left = Box::new(Expr::Literal(LiteralValue::Number(42.0)));
+        let right = Box::new(Expr::Literal(LiteralValue::Number(3.0)));
         let plus = Token::simple_token(TokenType::Plus, "+".to_string(), 0);
         let binary = Expr::Binary(left, plus, right);
         println!("{:?}", Expr::sorta_pretty_print(&binary));

@@ -1,6 +1,7 @@
 pub(crate) mod expr;
 pub(crate) mod interpreter;
 pub(crate) mod parser;
+pub(crate) mod rlvalue;
 pub(crate) mod scanner;
 pub(crate) mod token;
 
@@ -97,7 +98,7 @@ impl RLox {
             }
         };
 
-        self.interpreter.do_it(expr)?;
+        Interpreter::visit(&expr);
         Ok(())
     }
 

@@ -3,6 +3,7 @@ pub(crate) mod interpreter;
 pub(crate) mod parser;
 pub(crate) mod rlvalue;
 pub(crate) mod scanner;
+pub(crate) mod stmt;
 pub(crate) mod token;
 
 use std::cell::Cell;
@@ -84,17 +85,10 @@ impl RLox {
 
         // 2. parse
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
-        let expression = parser.parse();
-        let expr = match expression {
-            Ok(expr) => expr,
-            Err(e) => {
-                println!("error: {:?}", e);
-                return Err(e);
-            }
-        };
+        let stmts = parser.parse()?;
 
-        let rlvalue = Interpreter::visit(&expr)?;
-        println!("-> {}", rlvalue);
+        Interpreter::interpret(stmts)?;
+        //        println!("-> {}", rlvalue);
         Ok(())
     }
 

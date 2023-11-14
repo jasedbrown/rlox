@@ -9,7 +9,6 @@ use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use crate::ErrorReporter;
 
-#[derive(Debug)]
 pub struct Interpreter {
     environment: Environment,
     _error_reporter: ErrorReporter,
@@ -31,7 +30,6 @@ impl Interpreter {
     }
 
     fn execute(&self, stmt: &Stmt) -> Result<()> {
-        use Stmt::*;
         match stmt {
             Stmt::Print(e) => {
                 let val = self.evaluate(e)?;

@@ -1,3 +1,4 @@
+pub(crate) mod environment;
 pub(crate) mod expr;
 pub(crate) mod interpreter;
 pub(crate) mod parser;
@@ -87,7 +88,7 @@ impl RLox {
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let stmts = parser.parse()?;
 
-        Interpreter::interpret(stmts)?;
+        self.interpreter.interpret(stmts)?;
         //        println!("-> {}", rlvalue);
         Ok(())
     }

@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use crate::expr::Expr;
+use crate::token::Token;
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
@@ -11,6 +12,9 @@ pub enum Stmt {
     If,
     Print(Expr),
     Return,
-    Var,
+    Var {
+        name: Token,
+        initializer: Option<Expr>,
+    },
     While,
 }

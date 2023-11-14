@@ -24,6 +24,7 @@ impl<'a> Parser<'a> {
     /// The hierarchy is as follows (from lower precedence to higher,
     /// from the top of the grammer to the lower):
     ///
+    /// Declaration
     /// (Statement)
     /// (Expression)
     /// Equality
@@ -35,9 +36,30 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<Stmt>> {
         let mut stmts = Vec::new();
         while !self.at_end() {
-            stmts.push(self.statement()?);
+            stmts.push(self.declaration()?);
         }
         Ok(stmts)
+    }
+
+    fn declaration(&mut self) -> Result<Stmt> {
+        if self.matching(vec![TokenType::Var]) {
+            return self.var_declaration();
+        }
+        self.statement()
+    }
+
+    fn var_declaration(&mut self) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier).clone();
+        let has_initializer = &self.matching(vec![TokenType::Equal]);
+
+        let initializer = if *has_initializer {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+
+        self.consume(TokenType::Semicolon);
+        Ok(Stmt::Var { name, initializer })
     }
 
     fn statement(&mut self) -> Result<Stmt> {
@@ -133,6 +155,7 @@ impl<'a> Parser<'a> {
             TokenType::False => Expr::Literal(LiteralValue::Boolean(false)),
             TokenType::True => Expr::Literal(LiteralValue::Boolean(true)),
             TokenType::Nil => Expr::Literal(LiteralValue::Nil()),
+            TokenType::Var => Expr::Variable(self.previous().clone()),
 
             TokenType::Number => {
                 if let Some(Literal::NumberLiteral(n)) = next.literal {

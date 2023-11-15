@@ -27,6 +27,7 @@ impl<'a> Parser<'a> {
     /// Declaration
     /// (Statement)
     /// (Expression)
+    /// assignment
     /// Equality
     /// Comparison
     /// Term (Addition)
@@ -83,7 +84,27 @@ impl<'a> Parser<'a> {
     }
 
     fn expression(&mut self) -> Result<Expr> {
-        self.equality()
+        self.assignment()
+    }
+
+    fn assignment(&mut self) -> Result<Expr> {
+        let expr = self.equality()?;
+
+        if self.matching(vec![TokenType::Equal]) {
+            let _equals = self.previous();
+            let value = self.assignment()?;
+
+            match expr {
+                Expr::Variable(t) => {
+                    return Ok(Expr::Assign(t, Box::new(value)));
+                }
+                _ => {
+                    return Err(anyhow!("Invalid assignment target"));
+                }
+            }
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> Result<Expr> {

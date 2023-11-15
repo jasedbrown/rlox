@@ -37,7 +37,8 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Expression(e) => {
-                let _ = self.evaluate_expr(e)?;
+                let val = self.evaluate_expr(e)?;
+                println!("-> {}", val);
                 Ok(())
             }
             Stmt::Var { name, initializer } => {

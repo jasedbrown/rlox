@@ -71,7 +71,10 @@ impl RLox {
                 return Ok(());
             }
 
-            self.run(input)?;
+            if let Err(e) = self.run(input) {
+                println!("Erorr occurred: {:?}", e);
+                return Err(e);
+            }
 
             // reset the has_error on each run...
             self.error_reporter.reset();

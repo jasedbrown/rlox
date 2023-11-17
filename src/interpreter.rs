@@ -56,7 +56,11 @@ impl Interpreter {
     fn evaluate_expr(&self, expr: &Expr) -> Result<RlValue> {
         use Expr::*;
         match expr {
-            Assign(_t, _e) => Ok(RlValue::Nil),
+            Assign(t, e) => {
+                let value = self.evaluate_expr(e)?;
+                self.environment.assign(t, value.clone())?;
+                Ok(value)
+            }
             Binary(l, t, r) => {
                 let left = self.evaluate_expr(l)?;
                 let right = self.evaluate_expr(r)?;

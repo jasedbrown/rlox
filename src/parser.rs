@@ -177,6 +177,7 @@ impl<'a> Parser<'a> {
             TokenType::True => Expr::Literal(LiteralValue::Boolean(true)),
             TokenType::Nil => Expr::Literal(LiteralValue::Nil()),
             TokenType::Var => Expr::Variable(self.previous().clone()),
+            TokenType::Identifier => Expr::Variable(self.previous().clone()),
 
             TokenType::Number => {
                 if let Some(Literal::NumberLiteral(n)) = next.literal {

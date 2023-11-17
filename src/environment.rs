@@ -24,4 +24,15 @@ impl Environment {
             Entry::Vacant(_) => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
         }
     }
+
+    pub fn assign(&self, key: &Token, value: RlValue) -> Result<()> {
+        if self.values.borrow().contains_key(&key.lexeme) {
+            self.values
+                .borrow_mut()
+                .entry(key.lexeme.clone())
+                .and_modify(|e| *e = Some(value));
+            return Ok(());
+        }
+        Err(anyhow!("Undefined variable: {:?}", &key.lexeme))
+    }
 }

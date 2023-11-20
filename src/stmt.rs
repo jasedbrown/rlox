@@ -5,7 +5,7 @@ use crate::token::Token;
 
 #[derive(Clone, Debug)]
 pub enum Stmt {
-    Block,
+    Block(Vec<Stmt>),
     Class,
     Expression(Expr),
     Function,

@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
 use anyhow::{anyhow, Result};
+use std::cell::RefCell;
 
 use crate::environment::Environment;
 use crate::expr::{Expr, LiteralValue};
@@ -9,15 +10,15 @@ use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use crate::ErrorReporter;
 
-pub struct Interpreter {
-    environment: Environment,
+pub struct Interpreter<'a> {
+    environment: RefCell<Environment<'a>>,
     _error_reporter: ErrorReporter,
 }
 
-impl Interpreter {
+impl<'a> Interpreter<'a> {
     pub fn new(error_reporter: ErrorReporter) -> Self {
         Self {
-            environment: Default::default(),
+            environment: RefCell::new(Environment::new(None)),
             _error_reporter: error_reporter,
         }
     }
@@ -31,9 +32,25 @@ impl Interpreter {
 
     fn execute(&self, stmt: &Stmt) -> Result<()> {
         match stmt {
-            Stmt::Print(e) => {
-                let val = self.evaluate_expr(e)?;
-                println!("{}", val);
+            Stmt::Block(stmts) => {
+                //                let p = self.environment.swap(RefCell::new(None));
+                let local_env = RefCell::new(Environment::new(p));
+                self.environment.swap(&local_env);
+                // NOTE: local_env now ref's the parent env after this point.
+
+                for stmt in stmts {
+                    match self.execute(stmt) {
+                        Ok(_) => (),
+                        Err(e) => {
+                            // restore the parent env on error
+                            self.environment.swap(&local_env);
+                            return Err(anyhow!("Error processing stmt: {:?}", e));
+                        }
+                    }
+                }
+
+                // restore the parent env
+                self.environment.swap(&local_env);
                 Ok(())
             }
             Stmt::Expression(e) => {
@@ -41,12 +58,17 @@ impl Interpreter {
                 println!("-> {}", val);
                 Ok(())
             }
+            Stmt::Print(e) => {
+                let val = self.evaluate_expr(e)?;
+                println!("{}", val);
+                Ok(())
+            }
             Stmt::Var { name, initializer } => {
                 let val = match initializer {
                     Some(e) => Some(self.evaluate_expr(e)?),
                     None => None,
                 };
-                self.environment.define(name.lexeme.clone(), val);
+                self.environment.borrow().define(name.lexeme.clone(), val);
                 Ok(())
             }
             _ => Err(anyhow!("unsupported stmt type: {:?}", stmt)),
@@ -58,7 +80,7 @@ impl Interpreter {
         match expr {
             Assign(t, e) => {
                 let value = self.evaluate_expr(e)?;
-                self.environment.assign(t, value.clone())?;
+                self.environment.borrow().assign(t, value.clone())?;
                 Ok(value)
             }
             Binary(l, t, r) => {
@@ -153,7 +175,7 @@ impl Interpreter {
                     _ => Err(anyhow!("shouldn't get here!! ....")),
                 }
             }
-            Variable(t) => match self.environment.get(t)? {
+            Variable(t) => match self.environment.borrow().get(t)? {
                 Some(rlvalue) => Ok(rlvalue),
                 None => Ok(RlValue::Nil),
             },

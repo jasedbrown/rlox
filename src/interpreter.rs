@@ -2,6 +2,7 @@
 
 use anyhow::{anyhow, Result};
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::environment::Environment;
 use crate::expr::{Expr, LiteralValue};
@@ -10,15 +11,15 @@ use crate::stmt::Stmt;
 use crate::token::{Token, TokenType};
 use crate::ErrorReporter;
 
-pub struct Interpreter<'a> {
-    environment: RefCell<Environment<'a>>,
+pub struct Interpreter {
+    environment: Rc<RefCell<Environment>>,
     _error_reporter: ErrorReporter,
 }
 
-impl<'a> Interpreter<'a> {
+impl Interpreter {
     pub fn new(error_reporter: ErrorReporter) -> Self {
         Self {
-            environment: RefCell::new(Environment::new(None)),
+            environment: Rc::new(RefCell::new(Environment::new(None))),
             _error_reporter: error_reporter,
         }
     }
@@ -33,9 +34,10 @@ impl<'a> Interpreter<'a> {
     fn execute(&self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                //                let p = self.environment.swap(RefCell::new(None));
-                let local_env = RefCell::new(Environment::new(p));
-                self.environment.swap(&local_env);
+                let outer_env = Rc::clone(&self.environment);
+                let restore_env = Rc::clone(&self.environment);
+                let inner_env = Rc::new(RefCell::new(Environment::new(Some(outer_env))));
+                self.environment.swap(&inner_env);
                 // NOTE: local_env now ref's the parent env after this point.
 
                 for stmt in stmts {
@@ -43,14 +45,14 @@ impl<'a> Interpreter<'a> {
                         Ok(_) => (),
                         Err(e) => {
                             // restore the parent env on error
-                            self.environment.swap(&local_env);
+                            self.environment.swap(&restore_env);
                             return Err(anyhow!("Error processing stmt: {:?}", e));
                         }
                     }
                 }
 
-                // restore the parent env
-                self.environment.swap(&local_env);
+                // restore the parent
+                self.environment.swap(&restore_env);
                 Ok(())
             }
             Stmt::Expression(e) => {

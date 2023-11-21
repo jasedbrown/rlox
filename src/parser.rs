@@ -7,7 +7,7 @@ use crate::ErrorReporter;
 
 pub struct Parser<'a> {
     tokens: &'a Vec<Token>,
-    error_reporter: ErrorReporter,
+    _error_reporter: ErrorReporter,
     current: usize,
 }
 
@@ -15,7 +15,7 @@ impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>, error_reporter: ErrorReporter) -> Self {
         Parser {
             tokens,
-            error_reporter,
+            _error_reporter: error_reporter,
             current: 0,
         }
     }

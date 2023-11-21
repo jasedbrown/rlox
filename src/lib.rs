@@ -46,12 +46,12 @@ impl ErrorReporter {
 }
 
 /// The main struct for doing all the things for this project.
-pub struct RLox<'a> {
-    interpreter: Interpreter<'a>,
+pub struct RLox {
+    interpreter: Interpreter,
     error_reporter: ErrorReporter,
 }
 
-impl<'a> RLox<'a> {
+impl RLox {
     pub fn new(error_reporter: ErrorReporter) -> Self {
         RLox {
             interpreter: Interpreter::new(error_reporter.clone()),

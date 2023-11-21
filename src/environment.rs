@@ -2,29 +2,24 @@ use anyhow::{anyhow, Result};
 
 use std::cell::RefCell;
 use std::collections::{hash_map::Entry, HashMap};
+use std::rc::Rc;
 
 use crate::{rlvalue::RlValue, token::Token};
 
 /// A place to store level-scoped variables
-pub struct Environment<'a> {
+pub struct Environment {
     // at least some form of interior mutability (yay!)
     values: RefCell<HashMap<String, Option<RlValue>>>,
 
     // a parent Environment. If it's None, it's the outer-most environment.
-    // TODO: this is the lazy way for lifetimes ... needs love
-    enclosing: Option<&'a Environment<'a>>,
+    enclosing: Option<Rc<RefCell<Environment>>>,
 }
 
-impl<'a> Environment<'a> {
-    pub fn new(enclosing: Option<&'a Environment>) -> Self {
-        let enc = match enclosing {
-            Some(e) => Some(e),
-            None => None,
-        };
-
+impl Environment {
+    pub fn new(enclosing: Option<Rc<RefCell<Environment>>>) -> Self {
         Self {
             values: Default::default(),
-            enclosing: enc,
+            enclosing,
         }
     }
 
@@ -37,7 +32,7 @@ impl<'a> Environment<'a> {
         match self.values.borrow_mut().entry(key.lexeme.clone()) {
             Entry::Occupied(e) => Ok(e.get().clone()),
             Entry::Vacant(_) => match &self.enclosing {
-                Some(enclosing) => Ok(enclosing.get(key)?),
+                Some(enclosing) => Ok(enclosing.borrow().get(key)?),
                 None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
             },
         }
@@ -53,7 +48,7 @@ impl<'a> Environment<'a> {
         }
 
         if let Some(enclosing) = &self.enclosing {
-            return Ok(enclosing.assign(key, value)?);
+            return Ok(enclosing.borrow().assign(key, value)?);
         }
 
         Err(anyhow!("Undefined variable: {:?}", &key.lexeme))

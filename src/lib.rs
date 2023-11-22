@@ -11,7 +11,7 @@ use std::cell::Cell;
 use std::fs;
 use std::io::stdin;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
@@ -86,20 +86,21 @@ impl RLox {
         let mut scanner = Scanner::new(input.to_string(), self.error_reporter.clone());
         scanner.scan_tokens()?;
         let tokens = scanner.tokens();
+        println!("token len: {:?}", tokens.len());
 
         // 2. parse
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let stmts = parser.parse()?;
+        println!("stmts len: {:?}", stmts.len());
 
         self.interpreter.interpret(stmts)?;
-        //        println!("-> {}", rlvalue);
         Ok(())
     }
 
     pub fn run_file(&self, filename: &str) -> Result<()> {
         match fs::read_to_string(filename) {
             Ok(s) => self.run(s.as_str()),
-            Err(e) => panic!("failed to read file: {:?}", e),
+            Err(e) => Err(anyhow!("failed to read file: {:?}", e)),
         }
     }
 }

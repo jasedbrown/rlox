@@ -1,9 +1,10 @@
 use std::env;
 use std::process;
 
+use anyhow::Result;
 use rlox::{ErrorReporter, RLox};
 
-fn main() {
+fn main() -> Result<()> {
     let mut env_args: Vec<String> = env::args().collect();
     // ignore the first arg (it's the standard unix name of the process)
     env_args.remove(0);
@@ -12,8 +13,8 @@ fn main() {
     let rlox = RLox::new(error_reporter.clone());
 
     let _ = match env_args.len() {
-        0 => rlox.run_prompt(),
-        1 => rlox.run_file(&env_args[0]),
+        0 => rlox.run_prompt()?,
+        1 => rlox.run_file(&env_args[0])?,
         _ => {
             println!("Usage: rlox [script]");
             process::exit(64);
@@ -24,4 +25,6 @@ fn main() {
     if error_reporter.had_error() {
         process::exit(65);
     }
+
+    Ok(())
 }

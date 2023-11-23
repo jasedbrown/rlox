@@ -8,7 +8,7 @@ use crate::expr::LiteralValue;
 /// it'd be nifty to build a nan box for the next generation.
 ///
 /// [0] https://piotrduperas.com/posts/nan-boxing
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub enum RlValue {
     #[default]
     Nil,

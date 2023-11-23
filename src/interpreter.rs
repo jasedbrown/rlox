@@ -13,13 +13,16 @@ use crate::ErrorReporter;
 
 pub struct Interpreter {
     environment: Rc<RefCell<Environment>>,
+    env_id: RefCell<i32>,
     _error_reporter: ErrorReporter,
 }
 
 impl Interpreter {
     pub fn new(error_reporter: ErrorReporter) -> Self {
+        let env_id: i32 = 0;
         Self {
-            environment: Rc::new(RefCell::new(Environment::new(None))),
+            environment: Rc::new(RefCell::new(Environment::new(None, env_id))),
+            env_id: RefCell::new(env_id),
             _error_reporter: error_reporter,
         }
     }
@@ -34,11 +37,17 @@ impl Interpreter {
     fn execute(&self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                let outer_env = Rc::clone(&self.environment);
                 let restore_env = Rc::clone(&self.environment);
-                let inner_env = Rc::new(RefCell::new(Environment::new(Some(outer_env))));
+
+                let outer_env = Rc::clone(&self.environment);
+
+                self.env_id.replace_with(|&mut prev| prev + 1);
+
+                let inner_env = Rc::new(RefCell::new(Environment::new(
+                    Some(outer_env),
+                    *self.env_id.borrow(),
+                )));
                 self.environment.swap(&inner_env);
-                // NOTE: local_env now ref's the parent env after this point.
 
                 for stmt in stmts {
                     match self.execute(stmt) {
@@ -70,7 +79,7 @@ impl Interpreter {
                     Some(e) => Some(self.evaluate_expr(e)?),
                     None => None,
                 };
-                self.environment.borrow().define(name.lexeme.clone(), val);
+                self.environment.borrow().define(name.clone(), val);
                 Ok(())
             }
             _ => Err(anyhow!("unsupported stmt type: {:?}", stmt)),

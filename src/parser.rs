@@ -86,6 +86,7 @@ impl<'a> Parser<'a> {
             stmts.push(self.declaration()?);
         }
 
+        self.consume(TokenType::RightBrace);
         Ok(Stmt::Block(stmts))
     }
 

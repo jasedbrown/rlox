@@ -12,7 +12,7 @@ fn main() -> Result<()> {
     let error_reporter = ErrorReporter::default();
     let rlox = RLox::new(error_reporter.clone());
 
-    let _ = match env_args.len() {
+    match env_args.len() {
         0 => rlox.run_prompt()?,
         1 => rlox.run_file(&env_args[0])?,
         _ => {

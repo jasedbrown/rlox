@@ -59,7 +59,7 @@ impl RLox {
         }
     }
 
-    pub fn run_prompt(&self) -> Result<()> {
+    pub fn run_prompt(&mut self) -> Result<()> {
         println!("JEB::run_prompt HEAD");
         loop {
             println!("\nenter some program: ");
@@ -81,7 +81,7 @@ impl RLox {
         }
     }
 
-    fn run(&self, input: &str) -> Result<()> {
+    fn run(&mut self, input: &str) -> Result<()> {
         // 1. scan
         let mut scanner = Scanner::new(input.to_string(), self.error_reporter.clone());
         scanner.scan_tokens()?;
@@ -97,7 +97,7 @@ impl RLox {
         Ok(())
     }
 
-    pub fn run_file(&self, filename: &str) -> Result<()> {
+    pub fn run_file(&mut self, filename: &str) -> Result<()> {
         match fs::read_to_string(filename) {
             Ok(s) => self.run(s.as_str()),
             Err(e) => Err(anyhow!("failed to read file: {:?}", e)),

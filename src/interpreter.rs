@@ -27,14 +27,16 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret(&self, stmts: Vec<Stmt>) -> Result<()> {
+    pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts.iter() {
             self.execute(stmt)?;
         }
         Ok(())
     }
 
-    fn execute(&self, stmt: &Stmt) -> Result<()> {
+    // TODO: see if the 'mut' can be eliminated here - it's only used for changing the
+    // environment
+    fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
                 let restore_env = Rc::clone(&self.environment);
@@ -42,12 +44,11 @@ impl Interpreter {
                 let outer_env = Rc::clone(&self.environment);
 
                 self.env_id.replace_with(|&mut prev| prev + 1);
-
-                let inner_env = Rc::new(RefCell::new(Environment::new(
+                self.environment = Rc::new(RefCell::new(Environment::new(
                     Some(outer_env),
                     *self.env_id.borrow(),
                 )));
-                self.environment.swap(&inner_env);
+                //                self.environment.swap(&inner_env);
 
                 for stmt in stmts {
                     match self.execute(stmt) {

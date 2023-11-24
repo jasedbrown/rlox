@@ -37,24 +37,18 @@ impl fmt::Display for Environment {
 
 impl Environment {
     pub fn new(enclosing: Option<Rc<RefCell<Environment>>>, id: i32) -> Self {
-        let s = Self {
+        Self {
             values: Default::default(),
             enclosing,
             id,
-        };
-
-        println!("Env::new HEAD ({}) ", s);
-        s
+        }
     }
 
     pub fn define(&self, key: Token, value: Option<RlValue>) {
-        println!("Env::define HEAD ({})  - key: {:?}", self, &key);
         self.values.borrow_mut().insert(key.lexeme, value);
     }
 
     pub fn get(&self, key: &Token) -> Result<Option<RlValue>> {
-        println!("Env::get HEAD ({})  - key: {:?}", self, &key);
-
         if let Some(v) = self.values.borrow().get(&key.lexeme) {
             return Ok(v.clone());
         }
@@ -68,8 +62,6 @@ impl Environment {
     /// to the enclosing. Mainly for testing.
     #[allow(dead_code)]
     fn get_local(&self, key: &Token) -> Result<Option<RlValue>> {
-        println!("Env::get_local HEAD ({})  - key: {:?}", self, &key);
-
         match self.values.borrow().get(&key.lexeme) {
             Some(v) => Ok(v.clone()),
             None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
@@ -77,7 +69,6 @@ impl Environment {
     }
 
     pub fn assign(&self, key: &Token, value: RlValue) -> Result<()> {
-        println!("Env::assign HEAD ({})  - key: {:?}", self, &key);
         if self.values.borrow().contains_key(&key.lexeme) {
             self.values
                 .borrow_mut()
@@ -86,13 +77,10 @@ impl Environment {
             return Ok(());
         }
 
-        println!("Env::assign MID ({})  - key: {:?}", self, &key);
-        let x = match &self.enclosing {
+        match &self.enclosing {
             Some(enclosing) => enclosing.borrow().assign(key, value),
             None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
-        };
-        println!("Env::assign  ({})  - key: {:?}", self, &key);
-        x
+        }
     }
 }
 

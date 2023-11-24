@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     env_args.remove(0);
 
     let error_reporter = ErrorReporter::default();
-    let rlox = RLox::new(error_reporter.clone());
+    let mut rlox = RLox::new(error_reporter.clone());
 
     match env_args.len() {
         0 => rlox.run_prompt()?,

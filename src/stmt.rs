@@ -9,7 +9,11 @@ pub enum Stmt {
     Class,
     Expression(Expr),
     Function,
-    If,
+    If {
+        condition: Expr,
+        then_branch: Box<Stmt>,
+        else_branch: Option<Box<Stmt>>,
+    },
     Print(Expr),
     Return,
     Var {

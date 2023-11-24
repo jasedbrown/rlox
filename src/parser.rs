@@ -64,13 +64,32 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self) -> Result<Stmt> {
-        if self.matching(vec![TokenType::Print]) {
+        if self.matching(vec![TokenType::If]) {
+            return self.if_statement();
+        } else if self.matching(vec![TokenType::Print]) {
             return self.print_statement();
         } else if self.matching(vec![TokenType::LeftBrace]) && !self.at_end() {
             return self.block();
         }
 
         self.expression_statement()
+    }
+
+    fn if_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen);
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen);
+
+        let then_branch = Box::new(self.statement()?);
+        let else_branch = match self.matching(vec![TokenType::Else]) {
+            true => Some(Box::new(self.statement()?)),
+            false => None,
+        };
+        Ok(Stmt::If {
+            condition,
+            then_branch,
+            else_branch,
+        })
     }
 
     fn print_statement(&mut self) -> Result<Stmt> {
@@ -101,7 +120,7 @@ impl<'a> Parser<'a> {
     }
 
     fn assignment(&mut self) -> Result<Expr> {
-        let expr = self.equality()?;
+        let expr = self.or()?;
 
         if self.matching(vec![TokenType::Equal]) {
             let _equals = self.previous();
@@ -115,6 +134,30 @@ impl<'a> Parser<'a> {
                     return Err(anyhow!("Invalid assignment target"));
                 }
             }
+        }
+
+        Ok(expr)
+    }
+
+    fn or(&mut self) -> Result<Expr> {
+        let mut expr = self.and()?;
+
+        while self.matching(vec![TokenType::Or]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.and()?);
+            expr = Expr::Logical(Box::new(expr), operator, right)
+        }
+
+        Ok(expr)
+    }
+
+    fn and(&mut self) -> Result<Expr> {
+        let mut expr = self.equality()?;
+
+        while self.matching(vec![TokenType::And]) {
+            let operator = self.previous().clone();
+            let right = Box::new(self.equality()?);
+            expr = Expr::Logical(Box::new(expr), operator, right);
         }
 
         Ok(expr)

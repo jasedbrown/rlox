@@ -66,8 +66,19 @@ impl Interpreter {
                 Ok(())
             }
             Stmt::Expression(e) => {
-                let val = self.evaluate_expr(e)?;
-                println!("-> {}", val);
+                self.evaluate_expr(e)?;
+                Ok(())
+            }
+            Stmt::If {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                if self.evaluate_expr(condition)?.is_truthy() {
+                    self.execute(then_branch)?;
+                } else if let Some(el) = else_branch {
+                    self.execute(el)?;
+                }
                 Ok(())
             }
             Stmt::Print(e) => {
@@ -169,7 +180,20 @@ impl Interpreter {
             Get(_e, _t) => Ok(RlValue::Nil),
             Grouping(e) => self.evaluate_expr(e.as_ref()),
             Literal(l) => Ok(RlValue::from(l)),
-            Logical(_l, _t, _r) => Ok(RlValue::Nil),
+            Logical(left, operator, right) => {
+                let l = self.evaluate_expr(left)?;
+                if operator.token_type == TokenType::Or {
+                    if l.is_truthy() {
+                        return Ok(l);
+                    }
+                } else {
+                    if !l.is_truthy() {
+                        return Ok(l);
+                    }
+                }
+
+                self.evaluate_expr(right)
+            }
             Set(_l, _t, _r) => Ok(RlValue::Nil),
             Super(_t1, _t2) => Ok(RlValue::Nil),
             This(_t) => Ok(RlValue::Nil),

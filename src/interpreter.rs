@@ -94,6 +94,12 @@ impl Interpreter {
                 self.environment.borrow().define(name.clone(), val);
                 Ok(())
             }
+            Stmt::While { condition, body } => {
+                while self.evaluate_expr(condition)?.is_truthy() {
+                    self.execute(body)?;
+                }
+                Ok(())
+            }
             _ => Err(anyhow!("unsupported stmt type: {:?}", stmt)),
         }
     }

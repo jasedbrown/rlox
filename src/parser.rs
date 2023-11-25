@@ -64,15 +64,66 @@ impl<'a> Parser<'a> {
     }
 
     fn statement(&mut self) -> Result<Stmt> {
-        if self.matching(vec![TokenType::If]) {
+        if self.matching(vec![TokenType::For]) {
+            return self.for_statement();
+        } else if self.matching(vec![TokenType::If]) {
             return self.if_statement();
         } else if self.matching(vec![TokenType::Print]) {
             return self.print_statement();
+        } else if self.matching(vec![TokenType::While]) {
+            return self.while_statement();
         } else if self.matching(vec![TokenType::LeftBrace]) && !self.at_end() {
             return self.block();
         }
 
         self.expression_statement()
+    }
+
+    fn for_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen);
+
+        let initializer = if self.matching(vec![TokenType::Semicolon]) {
+            None
+        } else if self.matching(vec![TokenType::Var]) {
+            Some(self.var_declaration()?)
+        } else {
+            Some(self.expression_statement()?)
+        };
+
+        // default the condition to true if None was provided
+        let condition = if self.check(TokenType::Semicolon) {
+            Expr::Literal(LiteralValue::Boolean(true))
+        } else {
+            self.expression()?
+        };
+        self.consume(TokenType::Semicolon);
+
+        let increment = if self.check(TokenType::RightParen) {
+            None
+        } else {
+            Some(self.expression()?)
+        };
+        self.consume(TokenType::RightParen);
+
+        let mut body = self.statement()?;
+
+        //desugar the syntax
+        // put the increment after the body
+        if let Some(incr) = increment {
+            body = Stmt::Block(vec![body, Stmt::Expression(incr)]);
+        };
+
+        // put the conditional up front, and make it a while loop
+        body = Stmt::While {
+            condition,
+            body: Box::new(body),
+        };
+
+        if let Some(init) = initializer {
+            body = Stmt::Block(vec![init, body]);
+        }
+
+        Ok(body)
     }
 
     fn if_statement(&mut self) -> Result<Stmt> {
@@ -96,6 +147,14 @@ impl<'a> Parser<'a> {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon);
         Ok(Stmt::Print(value))
+    }
+
+    fn while_statement(&mut self) -> Result<Stmt> {
+        self.consume(TokenType::LeftParen);
+        let condition = self.expression()?;
+        self.consume(TokenType::RightParen);
+        let body = Box::new(self.statement()?);
+        Ok(Stmt::While { condition, body })
     }
 
     fn block(&mut self) -> Result<Stmt> {

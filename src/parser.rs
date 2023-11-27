@@ -11,6 +11,11 @@ pub struct Parser<'a> {
     current: usize,
 }
 
+enum FunctionKind {
+    Function,
+    Method,
+}
+
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a Vec<Token>, error_reporter: ErrorReporter) -> Self {
         Parser {
@@ -43,10 +48,48 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<Stmt> {
+        if self.matching(vec![TokenType::Fun]) {
+            return self.function(FunctionKind::Function);
+        }
         if self.matching(vec![TokenType::Var]) {
             return self.var_declaration();
         }
         self.statement()
+    }
+
+    fn function(&mut self, kind: FunctionKind) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier);
+
+        let mut params = Vec::new();
+        self.consume(TokenType::LeftParen);
+
+        // check for zero params
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if params.len() >= 255 {
+                    return Err(anyhow!(
+                        "cannot have more than 255 parameters on a function"
+                    ));
+                }
+
+                params.push(self.consume(TokenType::Identifier).clone());
+
+                if self.matching(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(TokenType::RightParen);
+
+        // now, on to the body of the function
+        self.consume(TokenType::LeftBrace);
+        let body = self.block()?;
+
+        Ok(Stmt::Function {
+            name: name.clone(),
+            params,
+            body: body,
+        })
     }
 
     fn var_declaration(&mut self) -> Result<Stmt> {
@@ -282,7 +325,37 @@ impl<'a> Parser<'a> {
             return Ok(Expr::Unary(operator, Box::new(right)));
         }
 
-        self.primary()
+        self.call()
+    }
+
+    fn call(&mut self) -> Result<Expr> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.matching(vec![TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: Expr) -> Result<Expr> {
+        let mut args = Vec::new();
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                args.push(self.expression()?);
+                if !self.matching(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        let paren = self.consume(TokenType::RightParen).clone();
+
+        Ok(Expr::Call(Box::new(callee), paren, args))
     }
 
     fn primary(&mut self) -> Result<Expr> {

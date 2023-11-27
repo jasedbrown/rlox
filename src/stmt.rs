@@ -8,7 +8,11 @@ pub enum Stmt {
     Block(Vec<Stmt>),
     Class,
     Expression(Expr),
-    Function,
+    Function {
+        name: Token,
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+    },
     If {
         condition: Expr,
         then_branch: Box<Stmt>,

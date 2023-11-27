@@ -4,6 +4,7 @@ use anyhow::{anyhow, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use crate::callable::Callable;
 use crate::environment::Environment;
 use crate::expr::{Expr, LiteralValue};
 use crate::rlvalue::RlValue;
@@ -182,7 +183,26 @@ impl Interpreter {
                     _ => Err(anyhow!("should be unreachable :(")),
                 }
             }
-            Call(_e, _t, _v) => Ok(RlValue::Nil),
+            Call(expr, _token, arguments) => {
+                let callee = self.evaluate_expr(expr)?;
+                let function = self.callable_lookup(&callee)?;
+
+                let mut args = Vec::new();
+                for arg in arguments {
+                    args.push(self.evaluate_expr(arg)?);
+                }
+
+                // check for the correct number of arguments
+                if args.len() != function.arity() {
+                    return Err(anyhow!(
+                        "Expected {} args, but got {}",
+                        function.arity(),
+                        args.len()
+                    ));
+                }
+
+                Ok(function.call(self, &args)?)
+            }
             Get(_e, _t) => Ok(RlValue::Nil),
             Grouping(e) => self.evaluate_expr(e.as_ref()),
             Literal(l) => Ok(RlValue::from(l)),
@@ -222,5 +242,19 @@ impl Interpreter {
                 None => Ok(RlValue::Nil),
             },
         }
+    }
+
+    fn callable_lookup(&self, callee: &RlValue) -> Result<Callable> {
+        let fn_name = match callee {
+            RlValue::String(s) => s,
+            _ => return Err(anyhow!("callee is not a string: {:?}", callee)),
+        };
+
+        // look up the funtion definition. first check as a built-in.
+        if let Some(f) = Callable::find_builtin(fn_name) {
+            return Ok(f);
+        }
+
+        Err(anyhow!("No function by name {:?} was found", fn_name))
     }
 }

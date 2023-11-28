@@ -3,12 +3,6 @@ use anyhow::{anyhow, Result};
 use crate::{interpreter::Interpreter, rlvalue::RlValue};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// pub trait Callable {
-//     fn arity(&self) -> usize;
-
-//     fn call(&self, interpreter: &Interpreter, args: &[RlValue]) -> Result<RlValue>;
-// }
-
 pub enum Callable {
     BuiltIn(BuiltInFunction),
     Dynamic,

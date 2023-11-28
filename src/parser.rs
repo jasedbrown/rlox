@@ -11,8 +11,10 @@ pub struct Parser<'a> {
     current: usize,
 }
 
+#[allow(dead_code)]
 enum FunctionKind {
     Function,
+    #[allow(dead_code)]
     Method,
 }
 
@@ -57,8 +59,8 @@ impl<'a> Parser<'a> {
         self.statement()
     }
 
-    fn function(&mut self, kind: FunctionKind) -> Result<Stmt> {
-        let name = self.consume(TokenType::Identifier);
+    fn function(&mut self, _kind: FunctionKind) -> Result<Stmt> {
+        let name = self.consume(TokenType::Identifier).clone();
 
         let mut params = Vec::new();
         self.consume(TokenType::LeftParen);
@@ -83,13 +85,15 @@ impl<'a> Parser<'a> {
 
         // now, on to the body of the function
         self.consume(TokenType::LeftBrace);
-        let body = self.block()?;
-
-        Ok(Stmt::Function {
-            name: name.clone(),
-            params,
-            body: body,
-        })
+        // there's a better a way to do this, i am sure ...
+        match self.block()? {
+            Stmt::Block(v) => Ok(Stmt::Function {
+                name,
+                params,
+                body: v,
+            }),
+            _ => unreachable!("wtf?!?!"),
+        }
     }
 
     fn var_declaration(&mut self) -> Result<Stmt> {
@@ -364,8 +368,6 @@ impl<'a> Parser<'a> {
             TokenType::False => Expr::Literal(LiteralValue::Boolean(false)),
             TokenType::True => Expr::Literal(LiteralValue::Boolean(true)),
             TokenType::Nil => Expr::Literal(LiteralValue::Nil()),
-            TokenType::Var => Expr::Variable(self.previous().clone()),
-            TokenType::Identifier => Expr::Variable(self.previous().clone()),
 
             TokenType::Number => {
                 if let Some(Literal::NumberLiteral(n)) = next.literal {
@@ -388,6 +390,9 @@ impl<'a> Parser<'a> {
                     ));
                 }
             }
+
+            TokenType::Var => Expr::Variable(self.previous().clone()),
+            TokenType::Identifier => Expr::Variable(self.previous().clone()),
 
             TokenType::LeftParen => {
                 let expr = self.expression()?;

@@ -5,7 +5,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::callable::Callable;
-use crate::environment::Environment;
+use crate::environment::{self, Environment};
 use crate::expr::{Expr, LiteralValue};
 use crate::rlvalue::RlValue;
 use crate::stmt::Stmt;
@@ -13,7 +13,16 @@ use crate::token::{Token, TokenType};
 use crate::ErrorReporter;
 
 pub struct Interpreter {
+    /// Top-most environment for holding, appropriately enough,
+    /// global variables and functions.
+    globals: Rc<RefCell<Environment>>,
+
+    /// The current-level of enviroment for variables, functions,
+    /// and so on.
     environment: Rc<RefCell<Environment>>,
+
+    /// A debugging aid for quickly and simply identifying a
+    /// given `Environment`.
     env_id: RefCell<i32>,
     _error_reporter: ErrorReporter,
 }
@@ -21,8 +30,11 @@ pub struct Interpreter {
 impl Interpreter {
     pub fn new(error_reporter: ErrorReporter) -> Self {
         let env_id: i32 = 0;
+        let globals = Rc::new(RefCell::new(Environment::new(None, env_id)));
+        let environment = globals.clone();
         Self {
-            environment: Rc::new(RefCell::new(Environment::new(None, env_id))),
+            globals,
+            environment,
             env_id: RefCell::new(env_id),
             _error_reporter: error_reporter,
         }

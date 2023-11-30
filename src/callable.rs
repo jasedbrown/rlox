@@ -1,16 +1,29 @@
 use anyhow::{anyhow, Result};
 
+use crate::stmt::Stmt;
+use crate::token::Token;
 use crate::{interpreter::Interpreter, rlvalue::RlValue};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[derive(Clone, Debug)]
 pub enum Callable {
     BuiltIn(BuiltInFunction),
-    Dynamic,
+    Dynamic { params: Vec<Token>, body: Vec<Stmt> },
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum BuiltInFunction {
     Clock,
+}
+
+impl TryFrom<Stmt> for Callable {
+    type Error = anyhow::Error;
+    fn try_from(s: Stmt) -> Result<Self, Self::Error> {
+        match s {
+            Stmt::Function { params, body, .. } => Ok(Callable::Dynamic { params, body }),
+            _ => Err(anyhow!("wrong Stmt variant: {:?}", s)),
+        }
+    }
 }
 
 impl Callable {
@@ -34,7 +47,7 @@ impl Callable {
     fn builtin_call(
         f: BuiltInFunction,
         _interpreter: &Interpreter,
-        _args: &[RlValue],
+        _args: &Vec<RlValue>,
     ) -> Result<RlValue> {
         use BuiltInFunction::*;
 
@@ -52,14 +65,23 @@ impl Callable {
     pub fn arity(&self) -> usize {
         match self {
             Callable::BuiltIn(f) => Self::builtin_arity(*f),
-            Callable::Dynamic => 0,
+            Callable::Dynamic { params, .. } => params.len(),
         }
     }
 
-    pub fn call(&self, interpreter: &Interpreter, args: &[RlValue]) -> Result<RlValue> {
+    pub fn call(&mut self, interpreter: &mut Interpreter, args: &Vec<RlValue>) -> Result<RlValue> {
         match self {
             Callable::BuiltIn(f) => Self::builtin_call(*f, interpreter, args),
-            Callable::Dynamic => Err(anyhow!("Not implemented yet!")),
+            Callable::Dynamic { params, body } => {
+                let env = interpreter.new_env_from_globals();
+
+                for (i, param) in params.iter().enumerate() {
+                    env.define(param.clone(), args.get(i).cloned());
+                }
+
+                interpreter.execute_block(&body, env)?;
+                Ok(RlValue::Nil)
+            }
         }
     }
 }

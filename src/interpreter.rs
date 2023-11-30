@@ -40,6 +40,18 @@ impl Interpreter {
         }
     }
 
+    pub fn new_env_from_globals(&self) -> Environment {
+        let outer_env = Rc::clone(&self.globals);
+        self.env_id.replace_with(|&mut prev| prev + 1);
+        Environment::new(Some(outer_env), *self.env_id.borrow())
+    }
+
+    pub fn new_env(&self) -> Environment {
+        let outer_env = Rc::clone(&self.environment);
+        self.env_id.replace_with(|&mut prev| prev + 1);
+        Environment::new(Some(outer_env), *self.env_id.borrow())
+    }
+
     pub fn interpret(&mut self, stmts: Vec<Stmt>) -> Result<()> {
         for stmt in stmts.iter() {
             self.execute(stmt)?;
@@ -52,34 +64,22 @@ impl Interpreter {
     fn execute(&mut self, stmt: &Stmt) -> Result<()> {
         match stmt {
             Stmt::Block(stmts) => {
-                let restore_env = Rc::clone(&self.environment);
-
-                let outer_env = Rc::clone(&self.environment);
-
-                self.env_id.replace_with(|&mut prev| prev + 1);
-                self.environment = Rc::new(RefCell::new(Environment::new(
-                    Some(outer_env),
-                    *self.env_id.borrow(),
-                )));
-                //                self.environment.swap(&inner_env);
-
-                for stmt in stmts {
-                    match self.execute(stmt) {
-                        Ok(_) => (),
-                        Err(e) => {
-                            // restore the parent env on error
-                            self.environment.swap(&restore_env);
-                            return Err(anyhow!("Error processing stmt: {:?}", e));
-                        }
-                    }
-                }
-
-                // restore the parent
-                self.environment.swap(&restore_env);
+                let env = self.new_env();
+                self.execute_block(stmts, env)?;
                 Ok(())
             }
             Stmt::Expression(e) => {
                 self.evaluate_expr(e)?;
+                Ok(())
+            }
+            Stmt::Function { name, params, body } => {
+                // TODO: not sure if i really need to clone() all the things ...
+                let callable = Callable::Dynamic {
+                    params: params.clone(),
+                    body: body.clone(),
+                };
+                let rlcallable = Some(RlValue::Callable(callable));
+                self.environment.borrow().define(name.clone(), rlcallable);
                 Ok(())
             }
             Stmt::If {
@@ -117,7 +117,7 @@ impl Interpreter {
         }
     }
 
-    fn evaluate_expr(&self, expr: &Expr) -> Result<RlValue> {
+    fn evaluate_expr(&mut self, expr: &Expr) -> Result<RlValue> {
         use Expr::*;
         match expr {
             Assign(t, e) => {
@@ -197,7 +197,16 @@ impl Interpreter {
             }
             Call(expr, _token, arguments) => {
                 let callee = self.evaluate_expr(expr)?;
-                let function = self.callable_lookup(&callee)?;
+                let mut function = match callee {
+                    RlValue::Callable(c) => c,
+                    _ => {
+                        return Err(anyhow!(
+                            "tried to call a function, but {:?} is not a function: {:?}",
+                            expr,
+                            callee
+                        ))
+                    }
+                };
 
                 let mut args = Vec::new();
                 for arg in arguments {
@@ -256,17 +265,23 @@ impl Interpreter {
         }
     }
 
-    fn callable_lookup(&self, callee: &RlValue) -> Result<Callable> {
-        let fn_name = match callee {
-            RlValue::String(s) => s,
-            _ => return Err(anyhow!("callee is not a string: {:?}", callee)),
-        };
-
-        // look up the funtion definition. first check as a built-in.
-        if let Some(f) = Callable::find_builtin(fn_name) {
-            return Ok(f);
+    pub fn execute_block(&mut self, stmts: &[Stmt], env: Environment) -> Result<()> {
+        let restore_env = Rc::clone(&self.environment);
+        self.environment = Rc::new(RefCell::new(env));
+        for stmt in stmts {
+            match self.execute(stmt) {
+                Ok(_) => (),
+                Err(e) => {
+                    // restore the parent env on error
+                    self.environment.swap(&restore_env);
+                    return Err(anyhow!("Error processing stmt: {:?}", e));
+                }
+            }
         }
 
-        Err(anyhow!("No function by name {:?} was found", fn_name))
+        // restore the parent
+        self.environment.swap(&restore_env);
+
+        Ok(())
     }
 }

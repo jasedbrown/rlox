@@ -62,8 +62,8 @@ impl<'a> Parser<'a> {
     fn function(&mut self, _kind: FunctionKind) -> Result<Stmt> {
         let name = self.consume(TokenType::Identifier).clone();
 
-        let mut params = Vec::new();
         self.consume(TokenType::LeftParen);
+        let mut params = Vec::new();
 
         // check for zero params
         if !self.check(TokenType::RightParen) {
@@ -76,7 +76,7 @@ impl<'a> Parser<'a> {
 
                 params.push(self.consume(TokenType::Identifier).clone());
 
-                if self.matching(vec![TokenType::Comma]) {
+                if !self.matching(vec![TokenType::Comma]) {
                     break;
                 }
             }

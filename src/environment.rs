@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::{rlvalue::RlValue, token::Token};
+use crate::{callable::Callable, rlvalue::RlValue, token::Token};
 
 /// A place to store level-scoped variables
 pub struct Environment {
@@ -52,9 +52,18 @@ impl Environment {
         if let Some(v) = self.values.borrow().get(&key.lexeme) {
             return Ok(v.clone());
         }
-        match &self.enclosing {
-            Some(e) => return e.borrow().get(key),
-            None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
+
+        if let Some(e) = &self.enclosing {
+            return e.borrow().get(key);
+        }
+
+        // if we're at the outer-most Env and we still haven't found the symbol,
+        // try looking into the "built-in functions" as defined in
+        // Callable::BuiltInFunction. This is a bit of a hack, but works
+        // for the current state (as of chapter 10 ...)
+        match Callable::find_builtin(&key.lexeme) {
+            Some(builtin) => Ok(Some(RlValue::Callable(builtin))),
+            None => Err(anyhow!("Undefined symbol: {:?}", &key.lexeme)),
         }
     }
 

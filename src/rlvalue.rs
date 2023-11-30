@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 use std::fmt;
 
+use crate::callable::Callable;
 use crate::expr::LiteralValue;
 
 /// The result value and type of evaluating an expression.
@@ -8,13 +9,14 @@ use crate::expr::LiteralValue;
 /// it'd be nifty to build a nan box for the next generation.
 ///
 /// [0] https://piotrduperas.com/posts/nan-boxing
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub enum RlValue {
     #[default]
     Nil,
     Boolean(bool),
     Double(f64),
     String(String),
+    Callable(Callable),
 }
 
 impl fmt::Display for RlValue {
@@ -24,6 +26,8 @@ impl fmt::Display for RlValue {
             RlValue::Boolean(b) => write!(f, "{}", b),
             RlValue::Double(d) => write!(f, "{:2}", d),
             RlValue::String(ref s) => write!(f, "{}", s),
+            // TODO: something better than this!
+            RlValue::Callable(ref c) => write!(f, "this is a callable: {:?}", c),
         }
     }
 }

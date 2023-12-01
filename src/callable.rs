@@ -49,7 +49,7 @@ impl Callable {
     fn builtin_call(
         f: BuiltInFunction,
         _interpreter: &Interpreter,
-        _args: &Vec<RlValue>,
+        _args: &[RlValue],
     ) -> Result<RlValue> {
         use BuiltInFunction::*;
 
@@ -71,7 +71,7 @@ impl Callable {
         }
     }
 
-    pub fn call(&mut self, interpreter: &mut Interpreter, args: &Vec<RlValue>) -> Result<RlValue> {
+    pub fn call(&mut self, interpreter: &mut Interpreter, args: &[RlValue]) -> Result<RlValue> {
         match self {
             Callable::BuiltIn(f) => Self::builtin_call(*f, interpreter, args),
             Callable::Dynamic { params, body } => {

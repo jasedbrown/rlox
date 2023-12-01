@@ -287,23 +287,28 @@ impl Interpreter {
         }
     }
 
-    pub fn execute_block(&mut self, stmts: &[Stmt], env: Environment) -> Result<()> {
+    pub fn execute_block(&mut self, stmts: &[Stmt], env: Environment) -> Result<RlValue> {
         let restore_env = Rc::clone(&self.environment);
         self.environment = Rc::new(RefCell::new(env));
+        let mut ret = Ok(RlValue::Nil);
         for stmt in stmts {
             match self.execute(stmt) {
                 Ok(_) => (),
+                Err(RloxReturnable::Return(val)) => {
+                    if let Some(val) = val {
+                        ret = Ok(val);
+                    }
+                    break;
+                }
                 Err(e) => {
-                    // restore the parent env on error
-                    self.environment.swap(&restore_env);
-                    return Err(e);
+                    ret = Err(e);
+                    break;
                 }
             }
         }
 
         // restore the parent
         self.environment.swap(&restore_env);
-
-        Ok(())
+        ret
     }
 }

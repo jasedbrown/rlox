@@ -81,10 +81,7 @@ impl Callable {
                     env.define(param.clone(), args.get(i).cloned());
                 }
 
-                match interpreter.execute_block(&body, env) {
-                    Ok(..) => Ok(RlValue::Nil),
-                    Err(e) => Err(e),
-                }
+                Ok(interpreter.execute_block(body, env)?)
             }
         }
     }

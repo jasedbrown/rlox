@@ -117,6 +117,8 @@ impl<'a> Parser<'a> {
             return self.if_statement();
         } else if self.matching(vec![TokenType::Print]) {
             return self.print_statement();
+        } else if self.matching(vec![TokenType::Return]) {
+            return self.return_statement();
         } else if self.matching(vec![TokenType::While]) {
             return self.while_statement();
         } else if self.matching(vec![TokenType::LeftBrace]) && !self.at_end() {
@@ -194,6 +196,16 @@ impl<'a> Parser<'a> {
         let value = self.expression()?;
         self.consume(TokenType::Semicolon);
         Ok(Stmt::Print(value))
+    }
+
+    fn return_statement(&mut self) -> Result<Stmt> {
+        let keyword = self.previous().clone();
+        let expr = match self.check(TokenType::Semicolon) {
+            true => None,
+            false => Some(self.expression()?),
+        };
+        self.consume(TokenType::Semicolon);
+        Ok(Stmt::Return { keyword, expr })
     }
 
     fn while_statement(&mut self) -> Result<Stmt> {

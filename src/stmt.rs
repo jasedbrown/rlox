@@ -19,7 +19,13 @@ pub enum Stmt {
         else_branch: Option<Box<Stmt>>,
     },
     Print(Expr),
-    Return,
+    Return {
+        keyword: Token,
+        // `Option` to allow a function to have no return value,
+        // like a "void function" - for example, in Java:
+        // public void doIt(String, int, ...) {}
+        expr: Option<Expr>,
+    },
     Var {
         name: Token,
         initializer: Option<Expr>,

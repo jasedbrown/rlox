@@ -1,11 +1,11 @@
 #![allow(dead_code, unused_imports)]
 
-use anyhow::{anyhow, Result};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::callable::Callable;
 use crate::environment::{self, Environment};
+use crate::error::{Result, RloxError, RloxReturnable};
 use crate::expr::{Expr, LiteralValue};
 use crate::rlvalue::RlValue;
 use crate::stmt::Stmt;
@@ -99,6 +99,16 @@ impl Interpreter {
                 println!("{}", val);
                 Ok(())
             }
+            Stmt::Return { expr, .. } => {
+                let ret = match expr {
+                    Some(expr) => Some(self.evaluate_expr(expr)?),
+                    None => None,
+                };
+
+                // holy shit, the CI book will throw an exception (in Java)
+                // in order to (early) return from a function.
+                Err(RloxReturnable::Return(ret))
+            }
             Stmt::Var { name, initializer } => {
                 let val = match initializer {
                     Some(e) => Some(self.evaluate_expr(e)?),
@@ -113,7 +123,10 @@ impl Interpreter {
                 }
                 Ok(())
             }
-            _ => Err(anyhow!("unsupported stmt type: {:?}", stmt)),
+            _ => Err(RloxReturnable::Error(RloxError::Unsupported(format!(
+                "unsupported stmt type: {:?}",
+                stmt
+            )))),
         }
     }
 
@@ -159,7 +172,10 @@ impl Interpreter {
                                 + right.as_numeric().expect("Must be numeric");
                             Ok(RlValue::Double(d))
                         } else {
-                            Err(anyhow!("mismatched types for '+' operator"))
+                            Err(RloxReturnable::Error(RloxError::IncorrectType(format!(
+                                "mismatched types for '+' operator, l: {:?}, , r: {:?}",
+                                l, r
+                            ))))
                         }
                     }
                     TokenType::Greater => {
@@ -192,7 +208,10 @@ impl Interpreter {
                         let right_d = right.as_numeric().unwrap();
                         Ok(RlValue::Boolean(left_d == right_d))
                     }
-                    _ => Err(anyhow!("should be unreachable :(")),
+                    _ => Err(RloxReturnable::Error(RloxError::Unreachable(format!(
+                        "unsupported Binary type: {:?}",
+                        t,
+                    )))),
                 }
             }
             Call(expr, _token, arguments) => {
@@ -200,11 +219,10 @@ impl Interpreter {
                 let mut function = match callee {
                     RlValue::Callable(c) => c,
                     _ => {
-                        return Err(anyhow!(
+                        return Err(RloxReturnable::Error(RloxError::IncorrectType(format!(
                             "tried to call a function, but {:?} is not a function: {:?}",
-                            expr,
-                            callee
-                        ))
+                            expr, callee
+                        ))))
                     }
                 };
 
@@ -215,11 +233,10 @@ impl Interpreter {
 
                 // check for the correct number of arguments
                 if args.len() != function.arity() {
-                    return Err(anyhow!(
-                        "Expected {} args, but got {}",
+                    return Err(RloxReturnable::Error(RloxError::ArityError(
                         function.arity(),
-                        args.len()
-                    ));
+                        args.len(),
+                    )));
                 }
 
                 Ok(function.call(self, &args)?)
@@ -249,13 +266,18 @@ impl Interpreter {
                 match t.token_type {
                     TokenType::Minus => match right.as_numeric() {
                         Some(d) => Ok(RlValue::Double(-d)),
-                        None => Err(anyhow!("rlvalue not a numeric value")),
+                        None => Err(RloxReturnable::Error(RloxError::IncorrectType(
+                            String::from("rlvalue not a numeric value"),
+                        ))),
                     },
                     TokenType::Bang => {
                         let b = !right.is_truthy();
                         Ok(RlValue::Boolean(b))
                     }
-                    _ => Err(anyhow!("shouldn't get here!! ....")),
+                    _ => Err(RloxReturnable::Error(RloxError::Unreachable(format!(
+                        "TokenType not accepted: {:?}",
+                        t.token_type,
+                    )))),
                 }
             }
             Variable(t) => match self.environment.borrow().get(t)? {
@@ -274,7 +296,7 @@ impl Interpreter {
                 Err(e) => {
                     // restore the parent env on error
                     self.environment.swap(&restore_env);
-                    return Err(anyhow!("Error processing stmt: {:?}", e));
+                    return Err(e);
                 }
             }
         }

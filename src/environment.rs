@@ -1,10 +1,9 @@
-use anyhow::{anyhow, Result};
-
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
+use crate::error::{Result, RloxError, RloxReturnable};
 use crate::{callable::Callable, rlvalue::RlValue, token::Token};
 
 /// A place to store level-scoped variables
@@ -63,7 +62,9 @@ impl Environment {
         // for the current state (as of chapter 10 ...)
         match Callable::find_builtin(&key.lexeme) {
             Some(builtin) => Ok(Some(RlValue::Callable(builtin))),
-            None => Err(anyhow!("Undefined symbol: {:?}", &key.lexeme)),
+            None => Err(RloxReturnable::Error(RloxError::UndefinedSymbol(
+                key.lexeme.clone(),
+            ))),
         }
     }
 
@@ -73,7 +74,9 @@ impl Environment {
     fn get_local(&self, key: &Token) -> Result<Option<RlValue>> {
         match self.values.borrow().get(&key.lexeme) {
             Some(v) => Ok(v.clone()),
-            None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
+            None => Err(RloxReturnable::Error(RloxError::UndefinedVariable(
+                key.lexeme.clone(),
+            ))),
         }
     }
 
@@ -88,7 +91,9 @@ impl Environment {
 
         match &self.enclosing {
             Some(enclosing) => enclosing.borrow().assign(key, value),
-            None => Err(anyhow!("Undefined variable: {:?}", &key.lexeme)),
+            None => Err(RloxReturnable::Error(RloxError::UndefinedVariable(
+                key.lexeme.clone(),
+            ))),
         }
     }
 }

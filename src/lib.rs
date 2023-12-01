@@ -1,5 +1,6 @@
 pub(crate) mod callable;
 pub(crate) mod environment;
+pub(crate) mod error;
 pub(crate) mod expr;
 pub(crate) mod interpreter;
 pub(crate) mod parser;

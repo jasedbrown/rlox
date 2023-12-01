@@ -1,5 +1,4 @@
-use anyhow::{anyhow, Result};
-
+use crate::error::{Result, RloxError};
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::{interpreter::Interpreter, rlvalue::RlValue};
@@ -17,11 +16,14 @@ pub enum BuiltInFunction {
 }
 
 impl TryFrom<Stmt> for Callable {
-    type Error = anyhow::Error;
+    type Error = RloxError;
     fn try_from(s: Stmt) -> Result<Self, Self::Error> {
         match s {
             Stmt::Function { params, body, .. } => Ok(Callable::Dynamic { params, body }),
-            _ => Err(anyhow!("wrong Stmt variant: {:?}", s)),
+            _ => Err(RloxError::DisallowedType(format!(
+                "wrong Stmt variant: {:?}",
+                s
+            ))),
         }
     }
 }
@@ -79,8 +81,10 @@ impl Callable {
                     env.define(param.clone(), args.get(i).cloned());
                 }
 
-                interpreter.execute_block(&body, env)?;
-                Ok(RlValue::Nil)
+                match interpreter.execute_block(&body, env) {
+                    Ok(..) => Ok(RlValue::Nil),
+                    Err(e) => Err(e),
+                }
             }
         }
     }

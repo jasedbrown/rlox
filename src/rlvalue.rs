@@ -27,7 +27,7 @@ impl fmt::Display for RlValue {
             RlValue::Double(d) => write!(f, "{:2}", d),
             RlValue::String(ref s) => write!(f, "{}", s),
             // TODO: something better than this!
-            RlValue::Callable(ref c) => write!(f, "this is a callable: {:?}", c),
+            RlValue::Callable(ref c) => write!(f, "this is a callable (print me)"),
         }
     }
 }

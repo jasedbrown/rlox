@@ -77,6 +77,7 @@ impl Interpreter {
                 let callable = Callable::Dynamic {
                     params: params.clone(),
                     body: body.clone(),
+                    //                    closure: Rc::clone(&self.environment),
                 };
                 let rlcallable = Some(RlValue::Callable(callable));
                 self.environment.borrow().define(name.clone(), rlcallable);

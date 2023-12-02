@@ -1,13 +1,31 @@
-use crate::error::{Result, RloxError};
+//use crate::environment::Environment;
+use crate::error::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::{interpreter::Interpreter, rlvalue::RlValue};
+
+//use std::cell::RefCell;
+use std::fmt;
+//use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
 pub enum Callable {
     BuiltIn(BuiltInFunction),
-    Dynamic { params: Vec<Token>, body: Vec<Stmt> },
+    Dynamic {
+        params: Vec<Token>,
+        body: Vec<Stmt>,
+        //        closure: Rc<RefCell<Environment>>,
+    },
+}
+
+impl fmt::Display for Callable {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Callable::BuiltIn(func) => write!(f, "{:?}", func),
+            Callable::Dynamic { params, .. } => write!(f, "function with arity {}", params.len()),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -15,18 +33,18 @@ pub enum BuiltInFunction {
     Clock,
 }
 
-impl TryFrom<Stmt> for Callable {
-    type Error = RloxError;
-    fn try_from(s: Stmt) -> Result<Self, Self::Error> {
-        match s {
-            Stmt::Function { params, body, .. } => Ok(Callable::Dynamic { params, body }),
-            _ => Err(RloxError::DisallowedType(format!(
-                "wrong Stmt variant: {:?}",
-                s
-            ))),
-        }
-    }
-}
+// impl TryFrom<Stmt> for Callable {
+//     type Error = RloxError;
+//     fn try_from(s: Stmt) -> Result<Self, Self::Error> {
+//         match s {
+//             Stmt::Function { params, body, .. } => Ok(Callable::Dynamic { params, body }),
+//             _ => Err(RloxError::DisallowedType(format!(
+//                 "wrong Stmt variant: {:?}",
+//                 s
+//             ))),
+//         }
+//     }
+// }
 
 impl Callable {
     // TODO: not sure if this is better as a From which returns Option<Callable>.
@@ -74,7 +92,11 @@ impl Callable {
     pub fn call(&mut self, interpreter: &mut Interpreter, args: &[RlValue]) -> Result<RlValue> {
         match self {
             Callable::BuiltIn(f) => Self::builtin_call(*f, interpreter, args),
-            Callable::Dynamic { params, body } => {
+            Callable::Dynamic {
+                params,
+                body,
+                //                closure,
+            } => {
                 let env = interpreter.new_env_from_globals();
 
                 for (i, param) in params.iter().enumerate() {

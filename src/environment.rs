@@ -7,6 +7,7 @@ use crate::error::{Result, RloxError, RloxReturnable};
 use crate::{callable::Callable, rlvalue::RlValue, token::Token};
 
 /// A place to store level-scoped variables
+#[derive(Debug)]
 pub struct Environment {
     // at least some form of interior mutability (yay!)
     values: RefCell<HashMap<String, Option<RlValue>>>,

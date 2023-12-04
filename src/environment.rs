@@ -3,11 +3,10 @@ use std::collections::HashMap;
 use std::fmt;
 use std::rc::Rc;
 
-use crate::error::{Result, RloxError, RloxReturnable};
+use crate::error::{Result, RloxError};
 use crate::{callable::Callable, rlvalue::RlValue, token::Token};
 
 /// A place to store level-scoped variables
-#[derive(Debug)]
 pub struct Environment {
     // at least some form of interior mutability (yay!)
     values: RefCell<HashMap<String, Option<RlValue>>>,
@@ -32,6 +31,19 @@ impl fmt::Display for Environment {
             self.id,
             enc_id
         )
+    }
+}
+
+impl fmt::Debug for Environment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        let enc_id: i32 = match self.enclosing {
+            Some(ref e) => e.borrow().id,
+            None => -1,
+        };
+        f.debug_struct("Environment")
+            .field("id", &self.id)
+            .field("enclosing id", &enc_id)
+            .finish()
     }
 }
 
@@ -63,9 +75,7 @@ impl Environment {
         // for the current state (as of chapter 10 ...)
         match Callable::find_builtin(&key.lexeme) {
             Some(builtin) => Ok(Some(RlValue::Callable(builtin))),
-            None => Err(RloxReturnable::Error(RloxError::UndefinedSymbol(
-                key.lexeme.clone(),
-            ))),
+            None => Err(RloxError::UndefinedSymbol(key.lexeme.clone())),
         }
     }
 
@@ -75,9 +85,7 @@ impl Environment {
     fn get_local(&self, key: &Token) -> Result<Option<RlValue>> {
         match self.values.borrow().get(&key.lexeme) {
             Some(v) => Ok(v.clone()),
-            None => Err(RloxReturnable::Error(RloxError::UndefinedVariable(
-                key.lexeme.clone(),
-            ))),
+            None => Err(RloxError::UndefinedVariable(key.lexeme.clone())),
         }
     }
 
@@ -92,9 +100,7 @@ impl Environment {
 
         match &self.enclosing {
             Some(enclosing) => enclosing.borrow().assign(key, value),
-            None => Err(RloxReturnable::Error(RloxError::UndefinedVariable(
-                key.lexeme.clone(),
-            ))),
+            None => Err(RloxError::UndefinedVariable(key.lexeme.clone())),
         }
     }
 }
@@ -102,8 +108,8 @@ impl Environment {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::error::Result;
     use crate::token::*;
-    use anyhow::Result;
     use std::cell::RefCell;
     use std::rc::Rc;
 

@@ -1,26 +1,28 @@
+#![allow(dead_code)]
+
 use thiserror::Error;
 
 use crate::rlvalue::RlValue;
 
-/// An `Error` wrapper for both garden variety errors
+/// An `RloxError` wrapper for both garden variety errors
 /// as well as early-return (and just any return) from a
 /// Rlox `Callable`.
-#[derive(Debug, Error)]
-pub enum RloxReturnable {
-    #[error(transparent)]
-    Error(#[from] RloxError),
-
-    #[error("not-an-error, just return this value ...")]
-    Return(Option<RlValue>),
-}
-
+///
+/// I originally had this as two separate types, with a parent enum,
+/// but the extra indirection is a bit much for this side project ....
 #[derive(Debug, Error)]
 pub enum RloxError {
-    #[error("expected {1} args, but got {1}")]
+    #[error("not-an-error, just return this value ...")]
+    Return(Option<RlValue>),
+
+    #[error("expected {0} args, but got {1}")]
     ArityError(usize, usize),
 
-    #[error("type is not allowed: {0}")]
-    DisallowedType(String),
+    #[error("IO error: {0}")]
+    IoError(#[from] std::io::Error),
+
+    #[error("{0}")]
+    ParseError(String),
 
     #[error("{0}")]
     UndefinedSymbol(String),
@@ -38,4 +40,4 @@ pub enum RloxError {
     Unsupported(String),
 }
 
-pub type Result<T, E = RloxReturnable> = core::result::Result<T, E>;
+pub type Result<T, E = RloxError> = core::result::Result<T, E>;

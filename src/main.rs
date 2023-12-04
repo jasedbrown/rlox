@@ -1,7 +1,16 @@
 use std::env;
 use std::process;
 
-use anyhow::Result;
+pub(crate) mod callable;
+pub(crate) mod environment;
+pub(crate) mod error;
+pub(crate) mod expr;
+pub(crate) mod interpreter;
+pub(crate) mod rlvalue;
+pub(crate) mod stmt;
+pub(crate) mod token;
+
+use error::Result;
 use rlox::{ErrorReporter, RLox};
 
 fn main() -> Result<()> {
@@ -12,14 +21,18 @@ fn main() -> Result<()> {
     let error_reporter = ErrorReporter::default();
     let mut rlox = RLox::new(error_reporter.clone());
 
-    match env_args.len() {
-        0 => rlox.run_prompt()?,
-        1 => rlox.run_file(&env_args[0])?,
+    let res = match env_args.len() {
+        0 => rlox.run_prompt(),
+        1 => rlox.run_file(&env_args[0]),
         _ => {
             println!("Usage: rlox [script]");
             process::exit(64);
         }
     };
+
+    // why the '?' operator requires type magic, I'm not sure,
+    // just doing this shitty alternative ... :(
+    res.unwrap();
 
     // Not sure if this is cool with the clone, but :shrug: for now
     if error_reporter.had_error() {

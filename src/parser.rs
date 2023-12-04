@@ -1,5 +1,4 @@
-use anyhow::{anyhow, Result};
-
+use crate::error::{Result, RloxError};
 use crate::expr::{Expr, LiteralValue};
 use crate::stmt::Stmt;
 use crate::token::{Literal, Token, TokenType};
@@ -69,9 +68,7 @@ impl<'a> Parser<'a> {
         if !self.check(TokenType::RightParen) {
             loop {
                 if params.len() >= 255 {
-                    return Err(anyhow!(
-                        "cannot have more than 255 parameters on a function"
-                    ));
+                    return Err(RloxError::ArityError(255, 256));
                 }
 
                 params.push(self.consume(TokenType::Identifier).clone());
@@ -249,7 +246,9 @@ impl<'a> Parser<'a> {
                     return Ok(Expr::Assign(t, Box::new(value)));
                 }
                 _ => {
-                    return Err(anyhow!("Invalid assignment target"));
+                    return Err(RloxError::ParseError(String::from(
+                        "Invalid assignment target",
+                    )));
                 }
             }
         }
@@ -385,10 +384,10 @@ impl<'a> Parser<'a> {
                 if let Some(Literal::NumberLiteral(n)) = next.literal {
                     Expr::Literal(LiteralValue::Number(n))
                 } else {
-                    return Err(anyhow!(
+                    return Err(RloxError::ParseError(format!(
                         "unsupported literal type with Number token type: {:?}",
                         next
-                    ));
+                    )));
                 }
             }
 
@@ -396,10 +395,10 @@ impl<'a> Parser<'a> {
                 if let Some(Literal::StringLiteral(ref s)) = next.literal {
                     Expr::Literal(LiteralValue::String(s.clone()))
                 } else {
-                    return Err(anyhow!(
-                        "unsupported literal type with Number token type: {:?}",
+                    return Err(RloxError::ParseError(format!(
+                        "unsupported literal type with String token type: {:?}",
                         next
-                    ));
+                    )));
                 }
             }
 
@@ -412,7 +411,12 @@ impl<'a> Parser<'a> {
                 Expr::Grouping(Box::new(expr))
             }
 
-            _ => return Err(anyhow!("unsupported token type in primary(): {:?}", next)),
+            _ => {
+                return Err(RloxError::ParseError(format!(
+                    "unsupported token type in primary(): {:?}",
+                    next
+                )))
+            }
         };
 
         Ok(expr)

@@ -1,12 +1,12 @@
-//use crate::environment::Environment;
+use crate::environment::Environment;
 use crate::error::Result;
 use crate::stmt::Stmt;
 use crate::token::Token;
 use crate::{interpreter::Interpreter, rlvalue::RlValue};
 
-//use std::cell::RefCell;
+use std::cell::RefCell;
 use std::fmt;
-//use std::rc::Rc;
+use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Debug)]
@@ -15,13 +15,13 @@ pub enum Callable {
     Dynamic {
         params: Vec<Token>,
         body: Vec<Stmt>,
-        //        closure: Rc<RefCell<Environment>>,
+        closure: Rc<RefCell<Environment>>,
     },
 }
 
 impl fmt::Display for Callable {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match *self {
+        match self {
             Callable::BuiltIn(func) => write!(f, "{:?}", func),
             Callable::Dynamic { params, .. } => write!(f, "function with arity {}", params.len()),
         }
@@ -32,19 +32,6 @@ impl fmt::Display for Callable {
 pub enum BuiltInFunction {
     Clock,
 }
-
-// impl TryFrom<Stmt> for Callable {
-//     type Error = RloxError;
-//     fn try_from(s: Stmt) -> Result<Self, Self::Error> {
-//         match s {
-//             Stmt::Function { params, body, .. } => Ok(Callable::Dynamic { params, body }),
-//             _ => Err(RloxError::DisallowedType(format!(
-//                 "wrong Stmt variant: {:?}",
-//                 s
-//             ))),
-//         }
-//     }
-// }
 
 impl Callable {
     // TODO: not sure if this is better as a From which returns Option<Callable>.
@@ -95,9 +82,10 @@ impl Callable {
             Callable::Dynamic {
                 params,
                 body,
-                //                closure,
+                closure,
             } => {
-                let env = interpreter.new_env_from_globals();
+                let c = Rc::clone(closure);
+                let env = Environment::new(Some(c), 42);
 
                 for (i, param) in params.iter().enumerate() {
                     env.define(param.clone(), args.get(i).cloned());

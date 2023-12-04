@@ -13,8 +13,7 @@ use std::cell::Cell;
 use std::fs;
 use std::io::stdin;
 
-use anyhow::{anyhow, Result};
-
+use crate::error::Result;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
 use crate::scanner::Scanner;
@@ -98,9 +97,7 @@ impl RLox {
     }
 
     pub fn run_file(&mut self, filename: &str) -> Result<()> {
-        match fs::read_to_string(filename) {
-            Ok(s) => self.run(s.as_str()),
-            Err(e) => Err(anyhow!("failed to read file: {:?}", e)),
-        }
+        let s = fs::read_to_string(filename)?;
+        self.run(s.as_str())
     }
 }

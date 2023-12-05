@@ -309,4 +309,8 @@ impl Interpreter {
         self.environment = restore_env;
         ret
     }
+
+    pub fn resolve(&self, expr: &Expr, diff: usize) -> Result<()> {
+        Ok(())
+    }
 }

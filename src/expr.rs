@@ -5,7 +5,7 @@ use crate::token::Token;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Expr {
     Assign(Token, Box<Expr>),
     Binary(Box<Expr>, Token, Box<Expr>),
@@ -21,7 +21,7 @@ pub enum Expr {
     Variable(Token),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum LiteralValue {
     String(String),
     Number(f64),

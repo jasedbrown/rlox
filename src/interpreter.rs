@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::callable::Callable;
@@ -24,6 +25,11 @@ pub struct Interpreter {
     /// A debugging aid for quickly and simply identifying a
     /// given `Environment`.
     env_id: RefCell<i32>,
+
+    /// For resolved variables, the distance from local context
+    /// to where it's defined.
+    locals: RefCell<HashMap<Expr, u32>>,
+
     _error_reporter: ErrorReporter,
 }
 
@@ -36,6 +42,7 @@ impl Interpreter {
             globals,
             environment,
             env_id: RefCell::new(env_id),
+            locals: RefCell::new(HashMap::new()),
             _error_reporter: error_reporter,
         }
     }
@@ -278,9 +285,9 @@ impl Interpreter {
                     ))),
                 }
             }
-            Variable(t) => match self.environment.borrow().get(t)? {
-                Some(rlvalue) => Ok(rlvalue),
-                None => Ok(RlValue::Nil),
+            Variable(t) => match self.locals.borrow().get(expr) {
+                Some(depth) => self.environment.get_at(depth, t),
+                None => self.globals.borrow().get(t),
             },
         }
     }
@@ -310,7 +317,8 @@ impl Interpreter {
         ret
     }
 
-    pub fn resolve(&self, expr: &Expr, diff: usize) -> Result<()> {
+    pub fn resolve(&self, expr: &Expr, depth: u32) -> Result<()> {
+        self.locals.borrow_mut().insert(expr.clone(), depth);
         Ok(())
     }
 }

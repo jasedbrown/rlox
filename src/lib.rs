@@ -17,6 +17,7 @@ use std::io::stdin;
 use crate::error::Result;
 use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::resolver::Resolver;
 use crate::scanner::Scanner;
 
 /// A centralized error reporting struct. Should be passed around to all
@@ -92,6 +93,11 @@ impl RLox {
         // 2. parse
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let stmts = parser.parse()?;
+
+        let mut resolver = Resolver::new(&self.interpreter);
+        for stmt in stmts {
+            resolver.resolve(&stmt)?;
+        }
 
         self.interpreter.interpret(stmts)?;
         Ok(())

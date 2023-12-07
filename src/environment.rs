@@ -79,6 +79,33 @@ impl Environment {
         }
     }
 
+    pub fn get_at(&self, distance: u32, token: &Token) -> Result<Option<RlValue>> {
+        if 0 == distance {
+            return Ok(self.values.borrow().get(&token.lexeme));
+        }
+
+        let mut i = 1;
+        let env = self.enclosing;
+        while i < distance {
+            match env {
+                Some(ref e) => {
+                    let r = Rc::clone(e);
+                    let a = *r.borrow();
+                    env = a.enclosing;
+                }
+                None => {
+                    return Ok(None);
+                }
+            }
+            i = i + 1;
+        }
+
+        let c = env.unwrap().clone().borrow();
+        let g = *c.values.borrow();
+        let v = g.get(&token.lexeme);
+        Ok(c.values.borrow().get(&token.lexeme))
+    }
+
     /// Looks up the key in the values map, but will not recurse up
     /// to the enclosing. Mainly for testing.
     #[allow(dead_code)]

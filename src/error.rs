@@ -34,6 +34,9 @@ pub enum RloxError {
     IncorrectType(String),
 
     #[error("{0}")]
+    ResolutionError(String),
+
+    #[error("{0}")]
     ResolveError(String),
 
     #[error("how did you get here?!?!: {0}")]

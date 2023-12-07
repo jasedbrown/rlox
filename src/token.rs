@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 use std::fmt::{Display, Formatter, Result};
 
-#[derive(Eq, PartialEq, Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TokenType {
     // single character tokens
     LeftParen,
@@ -52,7 +52,7 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Literal {
     StringLiteral(String),
     NumberLiteral(f64),
@@ -67,7 +67,7 @@ impl Display for Literal {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, Hash, PartialEq)]
 pub struct Token {
     pub(crate) token_type: TokenType,
     pub(crate) lexeme: String,

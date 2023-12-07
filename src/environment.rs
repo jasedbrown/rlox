@@ -79,13 +79,18 @@ impl Environment {
         }
     }
 
-    pub fn get_at(&self, distance: u32, token: &Token) -> Result<Option<RlValue>> {
+    pub fn get_at(&self, distance: u32, token: &Token) -> Result<RlValue> {
         if 0 == distance {
-            return Ok(self.values.borrow().get(&token.lexeme));
+            return match self.values.borrow().get(&token.lexeme) {
+                Some(v) => Ok(v.expect("should have a defined rlvalue").clone()),
+                None => Err(RloxError::ResolutionError(String::from(
+                    "should have a defined rlvalue",
+                ))),
+            };
         }
 
         let mut i = 1;
-        let env = self.enclosing;
+        let mut env = self.enclosing;
         while i < distance {
             match env {
                 Some(ref e) => {
@@ -94,16 +99,21 @@ impl Environment {
                     env = a.enclosing;
                 }
                 None => {
-                    return Ok(None);
+                    return Err(RloxError::ResolutionError(String::from(
+                        "No more envs left to upwardly traverse?!?",
+                    )));
                 }
             }
             i = i + 1;
         }
 
         let c = env.unwrap().clone().borrow();
-        let g = *c.values.borrow();
-        let v = g.get(&token.lexeme);
-        Ok(c.values.borrow().get(&token.lexeme))
+        match c.values.borrow().get(&token.lexeme) {
+            Some(v) => Ok(v.expect("should have a defined rlvalue").clone()),
+            None => Err(RloxError::ResolutionError(String::from(
+                "should have a defined rlvalue",
+            ))),
+        }
     }
 
     /// Looks up the key in the values map, but will not recurse up

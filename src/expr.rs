@@ -4,6 +4,7 @@ use crate::token::Token;
 
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum Expr {
@@ -21,12 +22,44 @@ pub enum Expr {
     Variable(Token),
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum LiteralValue {
     String(String),
     Number(f64),
     Boolean(bool),
     Nil(),
+}
+
+impl Hash for LiteralValue {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        match self {
+            LiteralValue::String(s) => s.hash(state),
+            // this is complete bullshit, but as f64 doesn't support hash,
+            // stoopidly casting to i64 gets us through for this application.
+            LiteralValue::Number(n) => ((n * 1000000.0) as i64).hash(state),
+            LiteralValue::Boolean(b) => b.hash(state),
+            LiteralValue::Nil() => 0.hash(state),
+        }
+    }
+}
+
+impl Eq for LiteralValue {}
+
+impl PartialEq for LiteralValue {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (LiteralValue::String(s), LiteralValue::String(o)) => s == o,
+            // this is slightly half-assed, directly comparing two f64's,
+            // but good enough for this application.
+            (LiteralValue::Number(s), LiteralValue::Number(o)) => s == o,
+            (LiteralValue::Boolean(s), LiteralValue::Boolean(o)) => s == o,
+            (LiteralValue::Nil(), LiteralValue::Nil()) => true,
+            _ => false,
+        }
+    }
 }
 
 impl Display for LiteralValue {

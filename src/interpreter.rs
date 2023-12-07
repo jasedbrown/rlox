@@ -286,8 +286,8 @@ impl Interpreter {
                 }
             }
             Variable(t) => match self.locals.borrow().get(expr) {
-                Some(depth) => self.environment.get_at(depth, t),
-                None => self.globals.borrow().get(t),
+                Some(depth) => Ok(self.environment.borrow().get_at(*depth, t)?),
+                None => Ok(self.globals.borrow().get(t)?.unwrap()),
             },
         }
     }

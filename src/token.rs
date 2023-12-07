@@ -1,5 +1,8 @@
 #![allow(dead_code)]
-use std::fmt::{Display, Formatter, Result};
+use std::{
+    fmt::{Display, Formatter, Result},
+    hash::{Hash, Hasher},
+};
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum TokenType {
@@ -52,10 +55,38 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Literal {
     StringLiteral(String),
     NumberLiteral(f64),
+}
+
+impl Hash for Literal {
+    fn hash<H>(&self, state: &mut H)
+    where
+        H: Hasher,
+    {
+        match self {
+            Literal::StringLiteral(s) => s.hash(state),
+            // this is complete bullshit, but as f64 doesn't support hash,
+            // stoopidly casting to i64 gets us through for this application.
+            Literal::NumberLiteral(n) => ((n * 1000000.0) as i64).hash(state),
+        }
+    }
+}
+
+impl Eq for Literal {}
+
+impl PartialEq for Literal {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Literal::StringLiteral(s), Literal::StringLiteral(o)) => s == o,
+            // this is slightly half-assed, directly comparing two f64's,
+            // but good enough for this application.
+            (Literal::NumberLiteral(s), Literal::NumberLiteral(o)) => s == o,
+            _ => false,
+        }
+    }
 }
 
 impl Display for Literal {

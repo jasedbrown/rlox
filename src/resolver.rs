@@ -16,7 +16,7 @@ pub struct Resolver<'a> {
 }
 
 impl<'a> Resolver<'a> {
-    pub fn new(interpreter: &Interpreter) -> Self {
+    pub fn new(interpreter: &'a Interpreter) -> Self {
         Self {
             interpreter,
             scopes: Vec::new(),
@@ -73,7 +73,7 @@ impl<'a> Resolver<'a> {
                 self.define(name);
                 Ok(())
             }
-            Stmt::While { condition, body } => Ok(()),
+            Stmt::While { .. } => Ok(()),
             _ => Err(RloxError::Unsupported(format!(
                 "unsupported stmt type: {:?}",
                 stmt
@@ -125,7 +125,7 @@ impl<'a> Resolver<'a> {
                 self.resolve_local(expr, t)?;
                 Ok(())
             }
-            Binary(l, t, r) => {
+            Binary(l, _t, r) => {
                 self.resolve_expr(l)?;
                 self.resolve_expr(r)?;
                 Ok(())
@@ -145,7 +145,7 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
             Literal(..) => Ok(()),
-            Logical(left, operator, right) => {
+            Logical(left, _operator, right) => {
                 self.resolve_expr(left)?;
                 self.resolve_expr(right)?;
                 Ok(())
@@ -153,7 +153,7 @@ impl<'a> Resolver<'a> {
             // Set(_l, _t, _r) => Ok(RlValue::Nil),
             // Super(_t1, _t2) => Ok(RlValue::Nil),
             // This(_t) => Ok(RlValue::Nil),
-            Unary(t, e) => {
+            Unary(_t, e) => {
                 self.resolve_expr(e)?;
                 Ok(())
             }
@@ -178,6 +178,8 @@ impl<'a> Resolver<'a> {
 
     fn resolve_local(&self, expr: &Expr, name: &Token) -> Result<()> {
         let mut i = self.scopes.len() - 1;
+
+        // TODO: pretty sure this is broken ...
         while i >= 0 {
             if self.scopes[i].contains_key(&name.lexeme) {
                 let depth = (self.scopes.len() - 1 - i) as u32;

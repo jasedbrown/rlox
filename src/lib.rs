@@ -94,10 +94,10 @@ impl RLox {
         let mut parser = Parser::new(tokens, self.error_reporter.clone());
         let stmts = parser.parse()?;
 
-        let mut resolver = Resolver::new(&self.interpreter);
-        for stmt in stmts {
-            resolver.resolve(&stmt)?;
-        }
+        // let mut resolver = Resolver::new(&self.interpreter);
+        // for stmt in &stmts {
+        //     resolver.resolve(stmt)?;
+        // }
 
         self.interpreter.interpret(stmts)?;
         Ok(())

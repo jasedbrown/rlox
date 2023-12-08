@@ -82,37 +82,20 @@ impl Environment {
     pub fn get_at(&self, distance: u32, token: &Token) -> Result<RlValue> {
         if 0 == distance {
             return match self.values.borrow().get(&token.lexeme) {
-                Some(v) => Ok(v.expect("should have a defined rlvalue").clone()),
+                Some(v) => Ok(v.clone().expect("should have a defined rlvalue")),
                 None => Err(RloxError::ResolutionError(String::from(
                     "should have a defined rlvalue",
                 ))),
             };
         }
 
-        let mut i = 1;
-        let mut env = self.enclosing;
-        while i < distance {
-            match env {
-                Some(ref e) => {
-                    let r = Rc::clone(e);
-                    let a = *r.borrow();
-                    env = a.enclosing;
-                }
-                None => {
-                    return Err(RloxError::ResolutionError(String::from(
-                        "No more envs left to upwardly traverse?!?",
-                    )));
-                }
+        match self.enclosing {
+            Some(ref e) => Rc::clone(e).borrow().get_at(distance - 1, token),
+            None => {
+                return Err(RloxError::ResolutionError(String::from(
+                    "No more envs left to upwardly traverse?!?",
+                )))
             }
-            i = i + 1;
-        }
-
-        let c = env.unwrap().clone().borrow();
-        match c.values.borrow().get(&token.lexeme) {
-            Some(v) => Ok(v.expect("should have a defined rlvalue").clone()),
-            None => Err(RloxError::ResolutionError(String::from(
-                "should have a defined rlvalue",
-            ))),
         }
     }
 

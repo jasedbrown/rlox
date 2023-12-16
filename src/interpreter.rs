@@ -255,10 +255,8 @@ impl Interpreter {
                     if l.is_truthy() {
                         return Ok(l);
                     }
-                } else {
-                    if !l.is_truthy() {
-                        return Ok(l);
-                    }
+                } else if !l.is_truthy() {
+                    return Ok(l);
                 }
 
                 self.evaluate_expr(right)

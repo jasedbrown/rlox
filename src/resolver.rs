@@ -158,11 +158,12 @@ impl<'a> Resolver<'a> {
                 Ok(())
             }
             Variable(t) => {
-                match self.scopes.last_mut().and_then(|m| m.get(&t.lexeme)) {
-                    Some(true) => (),
-                    Some(false) | None => {
-                        return Err(RloxError::ResolveError(String::from(
-                            "Can't read local var in its own initializer",
+                match self.scopes.last_mut().and_then(|s| s.get(&t.lexeme)) {
+                    Some(true) | None => (),
+                    Some(false) => {
+                        return Err(RloxError::ResolveError(format!(
+                            "Can't read local var in its own initializer, token: {:?}",
+                            t
                         )))
                     }
                 };
@@ -177,18 +178,15 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_local(&self, expr: &Expr, name: &Token) -> Result<()> {
-        let mut i = self.scopes.len() - 1;
-
-        // TODO: pretty sure this is broken ...
-        while i >= 0 {
-            if self.scopes[i].contains_key(&name.lexeme) {
+        for (i, scope) in self.scopes.iter().rev().enumerate() {
+            if scope.contains_key(&name.lexeme) {
                 let depth = (self.scopes.len() - 1 - i) as u32;
                 self.interpreter.resolve(expr, depth)?;
+                return Ok(());
             }
-
-            i -= 1;
         }
 
+        // if we don't find the token in the scopes, we assume it's global.
         Ok(())
     }
 }

@@ -83,19 +83,18 @@ impl Environment {
         if 0 == distance {
             return match self.values.borrow().get(&token.lexeme) {
                 Some(v) => Ok(v.clone().expect("should have a defined rlvalue")),
-                None => Err(RloxError::ResolutionError(String::from(
-                    "should have a defined rlvalue",
+                None => Err(RloxError::ResolutionError(format!(
+                    "should have a defined rlvalue for token {:?}",
+                    token,
                 ))),
             };
         }
 
         match self.enclosing {
             Some(ref e) => Rc::clone(e).borrow().get_at(distance - 1, token),
-            None => {
-                return Err(RloxError::ResolutionError(String::from(
-                    "No more envs left to upwardly traverse?!?",
-                )))
-            }
+            None => Err(RloxError::ResolutionError(String::from(
+                "No more envs left to upwardly traverse?!?",
+            ))),
         }
     }
 
